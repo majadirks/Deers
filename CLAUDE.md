@@ -1,10 +1,10 @@
 # DEERS IN THE HEADLIGHTS — LLM Working Context
 
-## Current Phase: Phase 2 (Core Data Models)
-## Last Completed Phase: Phase 1 (Project Scaffold and Content Authoring)
-## Passing Tests: content.py load_all() runs without error; all TOML files parse cleanly
+## Current Phase: Phase 3 (Game Logic — Deterministic Core)
+## Last Completed Phase: Phase 2 (Core Data Models)
+## Passing Tests: 75 passing (14 content, 61 model tests)
 ## Known Issues: None
-## Next Action: Write deers/models.py with all enums and dataclasses
+## Next Action: Write deers/actions.py — implement Action, ResolutionFailure, ActionResolver with all 8 verbs
 
 ## Key Design Decisions (do not relitigate)
 - Event log is append-only; game state is projected from it
