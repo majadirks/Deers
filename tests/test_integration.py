@@ -393,3 +393,97 @@ class TestPhase8Mechanics:
         result = eng.handle_input("submit")
         assert isinstance(result, str)
         assert len(result) > 0
+
+
+class TestPhase9Polish:
+    """Tests for Phase 9: cold-start, voice, status display polish."""
+
+    def test_cold_start_shows_intro(self, content):
+        """Fresh game (loop 1) shows opening monologue in start()."""
+        eng = make_engine(content)
+        assert eng.state.loop_number == 1
+        result = eng.start()
+        assert "Monday" in result
+        assert "CAC" in result
+        assert "Friday" in result
+
+    def test_cold_start_includes_orientation(self, content):
+        """Cold start includes command orientation hints."""
+        eng = make_engine(content)
+        result = eng.start()
+        assert "HELP" in result
+        assert "EXAMINE DEERS" in result
+
+    def test_no_intro_after_loop_reset(self, content):
+        """After loop reset (loop >= 2), start() does not show the intro."""
+        from deers.clock import OFFICE_CLOSE_MINS
+        eng = make_engine(content)
+        s = eng.state
+        s.clock.current_minutes = OFFICE_CLOSE_MINS - 29
+        eng.handle_input("wait")
+        assert s.loop_number == 2
+        result = eng.start()
+        # Intro text starts with "Monday. 0845."
+        assert "0845" not in result
+
+    def test_status_shows_next_when_queue_zero(self, content):
+        """STATUS and status line show 'NEXT' when queue_position is 0."""
+        eng = make_engine(content)
+        s = eng.state
+        s.queue_position = 0
+        status = eng.handle_input("status")
+        assert "NEXT" in status
+
+    def test_status_line_shows_next_when_queue_zero(self, content):
+        """The inline status line also shows NEXT for queue=0."""
+        eng = make_engine(content)
+        s = eng.state
+        s.queue_position = 0
+        result = eng.start()
+        assert "NEXT" in result
+
+    def test_status_shows_blocking_corruptions(self, content):
+        """STATUS highlights blocking DEERS corruptions separately."""
+        eng = make_engine(content)
+        s = eng.state
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+        s.deers.fields["last_name"].is_corrupted = True
+        status = eng.handle_input("status")
+        assert "Blocking" in status or "blocking" in status.lower()
+
+    def test_failure_messages_in_voice(self, content):
+        """ResolutionFailure messages do not use casual contractions."""
+        eng = make_engine(content)
+        # These should all fail with in-voice messages
+        fail_inputs = [
+            "go narnia",
+            "examine dragon",
+            "take moon",
+            "read newspaper",
+            "drop invisible_thing",
+        ]
+        for inp in fail_inputs:
+            result = eng.handle_input(inp)
+            # Should not contain casual "There's" — use "There is" instead
+            assert "There's" not in result, (
+                f"Input '{inp}' produced casual contraction: {result!r}"
+            )
+
+    def test_unknown_verb_message_in_voice(self, content):
+        """Unknown verbs (converted to EXAMINE by keyword parser) produce in-voice messages."""
+        eng = make_engine(content)
+        result = eng.handle_input("frobnicate everything")
+        # Keyword parser maps unknown verbs to EXAMINE; should not use casual "doesn't"
+        assert "doesn't" not in result
+        assert len(result) > 0
+
+    def test_readme_exists(self):
+        """README.md exists at project root."""
+        from pathlib import Path
+        readme = Path(__file__).parent.parent / "README.md"
+        assert readme.exists(), "README.md not found at project root"
+        text = readme.read_text()
+        assert "CAC" in text
+        assert "DEERS" in text
+        assert len(text) > 500  # not empty

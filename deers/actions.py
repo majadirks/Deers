@@ -166,7 +166,7 @@ class ActionResolver:
         handler = handlers.get(verb)
         if handler is None:
             return ResolutionFailure(
-                f"The word '{parsed.verb}' doesn't mean anything here. "
+                f"'{parsed.verb}' is not a recognized action. "
                 "Try: GO, TALK, EXAMINE, TAKE, USE, SUBMIT, WAIT, DROP, READ, HELP, STATUS."
             )
 
@@ -203,10 +203,10 @@ class ActionResolver:
         if dest_id is None:
             available = [e.destination_id for e in loc.exits]
             return ResolutionFailure(
-                f"You can't go to '{parsed.target}' from here. "
-                f"You could go to: {', '.join(available)}."
+                f"There is no route to '{parsed.target}' from here. "
+                f"Possible destinations: {', '.join(available)}."
                 if available else
-                "There's nowhere to go from here."
+                "There is nowhere to go from here."
             )
 
         exit_obj = next(
@@ -214,7 +214,7 @@ class ActionResolver:
         )
         if exit_obj is None:
             return ResolutionFailure(
-                f"There's no way to reach {dest_id} from here."
+                f"There is no exit to {dest_id} from here."
             )
 
         dest_loc = state.locations.get(dest_id)
@@ -254,10 +254,10 @@ class ActionResolver:
             npc_anywhere = self._find_npc(parsed.target, state, present_only=False)
             if npc_anywhere:
                 return ResolutionFailure(
-                    f"{npc_anywhere.display_name(state)} isn't here right now."
+                    f"{npc_anywhere.display_name(state)} is not here."
                 )
             return ResolutionFailure(
-                "There's no one by that description here."
+                "There is no one here matching that description."
             )
 
         npc_id = npc.npc_id
@@ -347,7 +347,7 @@ class ActionResolver:
             )
 
         return ResolutionFailure(
-            f"You don't see anything called '{parsed.target}' to examine."
+            f"There is nothing here called '{parsed.target}'."
         )
 
     def _handle_take(
@@ -360,10 +360,16 @@ class ActionResolver:
         if any(kw in target for kw in ("number", "dispenser", "ticket", "slip")):
             has_dispenser = any(f.id == "number_dispenser" for f in loc.features)
             if not has_dispenser:
-                return ResolutionFailure("There's no number dispenser here.")
-            if state.queue_position is not None:
                 return ResolutionFailure(
-                    f"You already have a number. There are {state.queue_position} people ahead."
+                    "There is no number dispenser here. "
+                    "Numbers are issued in the waiting room."
+                )
+            if state.queue_position is not None:
+                ahead = state.queue_position
+                if ahead == 0:
+                    return ResolutionFailure("You already have a number. You are next.")
+                return ResolutionFailure(
+                    f"You already have a number. There are {ahead} people ahead of you."
                 )
 
             def take_number(s: "GameState") -> GameEvent:
@@ -386,7 +392,7 @@ class ActionResolver:
             )
 
         return ResolutionFailure(
-            f"There's nothing here called '{parsed.target}' to take."
+            f"There is nothing here called '{parsed.target}' to take."
         )
 
     def _handle_use(
@@ -421,13 +427,13 @@ class ActionResolver:
         )
         if feature is None:
             return ResolutionFailure(
-                f"There's nothing here called '{parsed.target}' to use."
+                f"There is nothing here called '{parsed.target}' to use."
             )
 
         event_type = feature.interactions.get("USE")
         if event_type is None:
             return ResolutionFailure(
-                f"You can't use the {feature.name} that way."
+                f"The {feature.name} does not respond to that."
             )
 
         return self._dispatch_feature_use(feature, event_type, state, target)
@@ -527,7 +533,8 @@ class ActionResolver:
             copyable = [d for d in state.inventory.documents if d.can_be_photocopied]
             if not copyable:
                 return ResolutionFailure(
-                    "You don't have any documents that can be photocopied."
+                    "You have nothing that can be photocopied. "
+                    "The machine waits with mechanical patience."
                 )
             # Copy the first copyable document (Phase 7 makes this interactive)
             doc_to_copy = copyable[0]
@@ -580,21 +587,20 @@ class ActionResolver:
                     s.morale.apply("queue_advanced")
             return GameEvent(event_type="wait", payload={"minutes": 30})
 
+        def wait_message(s: "GameState") -> str:
+            base = "Time passes."
+            if s.queue_position is None:
+                return base
+            if s.queue_position == 0:
+                return base + " You should be called soon."
+            return base + f" There are {s.queue_position} people ahead of you."
+
         return Action(
             verb="WAIT",
             target="",
             conditions=[],
             effects=[do_wait],
-            message=lambda s: (
-                "Time passes."
-                + (
-                    f" Queue position: {s.queue_position} ahead of you."
-                    if s.queue_position and s.queue_position > 0
-                    else " You should be called soon."
-                    if s.queue_position == 0
-                    else ""
-                )
-            ),
+            message=wait_message,
         )
 
     def _handle_drop(
@@ -604,11 +610,12 @@ class ActionResolver:
         doc = self._find_document(target, state)
         if doc is None:
             return ResolutionFailure(
-                f"You're not carrying anything called '{parsed.target}'."
+                f"You are not carrying anything called '{parsed.target}'."
             )
         if doc.doc_type in _UNDROPABLE:
             return ResolutionFailure(
-                f"You should keep your {doc.display_name}."
+                f"You should hold onto your {doc.display_name}. "
+                "It is why you are here."
             )
 
         def drop_doc(s: "GameState") -> GameEvent:
@@ -633,7 +640,7 @@ class ActionResolver:
         doc = self._find_document(target, state)
         if doc is None:
             return ResolutionFailure(
-                f"You're not carrying anything to read called '{parsed.target}'."
+                f"You are not carrying anything called '{parsed.target}' to read."
             )
 
         def read_doc(s: "GameState") -> GameEvent:
@@ -696,16 +703,24 @@ class ActionResolver:
             time = s.clock.time_display()
             morale_bar = s.morale.bar()
             morale_pct = s.morale.percentage()
-            queue_str = str(s.queue_position) if s.queue_position is not None else "—"
+            if s.queue_position is None:
+                queue_str = "—"
+            elif s.queue_position == 0:
+                queue_str = "NEXT"
+            else:
+                queue_str = str(s.queue_position)
             corruptions = [f.display_name for f in s.deers.corrupted_fields()]
+            blocking = [f.display_name for f in s.deers.blocking_corruptions()]
             docs = [d.display_name for d in s.inventory.documents]
 
             lines = [
                 f"[Loop {s.loop_number} | {day} {time} | Morale: {morale_bar} {morale_pct}% | Queue: {queue_str}]",
                 f"Location: {loc.name}",
                 f"DEERS issues: {', '.join(corruptions) if corruptions else 'None detected'}",
-                f"Documents: {', '.join(docs) if docs else 'None'}",
             ]
+            if blocking:
+                lines.append(f"  Blocking issuance: {', '.join(blocking)}")
+            lines.append(f"Documents: {', '.join(docs) if docs else 'None'}")
             return "\n".join(lines)
 
         return Action(
@@ -722,13 +737,13 @@ class ActionResolver:
         """Submit documents to the clerk to fix ON_SITE DEERS fields."""
         if state.current_location_id != "queue_window":
             return ResolutionFailure(
-                "There's no one to submit documents to here. "
-                "Go to the processing window."
+                "You are not at the processing window. "
+                "Document submission occurs at the processing window."
             )
         if state.queue_position is None:
             return ResolutionFailure(
-                "You don't have a queue number. "
-                "Take a number from the dispenser in the waiting room first."
+                "You do not have a queue number. "
+                "Take one from the dispenser in the waiting room."
             )
 
         # Use a closure list so effects can write and message can read.

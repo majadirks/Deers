@@ -14,6 +14,28 @@ from deers.persistence import load_narrator_cache, save_game, save_narrator_cach
 from deers.state import GameState
 
 
+# ---------------------------------------------------------------------------
+# Cold-start intro (shown once, on the first loop of a new game)
+# ---------------------------------------------------------------------------
+
+_COLD_START_TEXT = """\
+Monday. 0845. You have an appointment for CAC in-processing at 0900, Building 23.
+
+The Common Access Card is required for network access, facility entry, and \
+existence in any official capacity on this installation. You do not have one. \
+Getting one is why you are here.
+
+Your contracting officer has confirmed your start date is Friday. It is \
+currently Monday. This should be enough time.
+
+─────────────────────────────────────────────
+Type HELP for available commands.
+Type EXAMINE DEERS to see what the system has on file for you.
+Type STATUS at any time to check your situation.
+─────────────────────────────────────────────\
+"""
+
+
 class GameEngine:
     """
     Orchestrates the game loop. Claude components (parser, narrator, dialogue)
@@ -52,8 +74,13 @@ class GameEngine:
             save_narrator_cache(self.narrator.cache)
 
     def start(self) -> str:
-        """Return the opening description."""
-        return self._status_line() + "\n\n" + self._describe_current_location()
+        """Return the opening description, with cold-start intro for fresh games."""
+        parts = []
+        if self.state.loop_number == 1:
+            parts.append(_COLD_START_TEXT.format(name=self.state.player_name))
+        parts.append(self._status_line())
+        parts.append(self._describe_current_location())
+        return "\n\n".join(parts)
 
     def handle_input(self, raw: str) -> str:
         """Process one line of player input and return the response."""
@@ -215,9 +242,15 @@ class GameEngine:
 
     def _status_line(self) -> str:
         s = self.state
+        if s.queue_position is None:
+            queue_str = "—"
+        elif s.queue_position == 0:
+            queue_str = "NEXT"
+        else:
+            queue_str = str(s.queue_position)
         return (
             f"[Loop {s.loop_number} | "
             f"{day_name(s.loop_number)} {s.clock.time_display()} | "
             f"Morale: {s.morale.bar()} {s.morale.percentage()}% | "
-            f"Queue: {s.queue_position if s.queue_position is not None else '—'}]"
+            f"Queue: {queue_str}]"
         )
