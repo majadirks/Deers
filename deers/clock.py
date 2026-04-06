@@ -1,12 +1,11 @@
 """GameClock: in-game time tracking, office hours, and action costs."""
 
 from dataclasses import dataclass, field
-from datetime import time
 
-OFFICE_OPEN_MINS = 9 * 60       # 9:00 AM = 540
-OFFICE_CLOSE_MINS = 16 * 60     # 4:00 PM = 960
+OFFICE_OPEN_MINS = 9 * 60        # 9:00 AM = 540
+OFFICE_CLOSE_MINS = 16 * 60      # 4:00 PM = 960
 LUNCH_START_MINS = 11 * 60 + 30  # 11:30 AM = 690
-LUNCH_END_MINS = 12 * 60 + 30   # 12:30 PM = 750
+LUNCH_END_MINS = 12 * 60 + 30    # 12:30 PM = 750
 
 # Minutes it costs to perform each verb.
 ACTION_COSTS: dict[str, int] = {
@@ -22,13 +21,25 @@ ACTION_COSTS: dict[str, int] = {
     "STATUS": 0,
 }
 
-# Day names for display; Thursday is index 0 (4 days until Monday).
-_DAY_NAMES = ["Thursday", "Friday", "Saturday", "Sunday", "Monday"]
+# Day of week by loop number. Loops 1-4 = Mon-Thu; loop 5+ = Friday (deadline).
+_LOOP_DAY_NAMES: dict[int, str] = {
+    1: "Monday",
+    2: "Tuesday",
+    3: "Wednesday",
+    4: "Thursday",
+}
+
+
+def day_name(loop_number: int) -> str:
+    """Return the weekday name for the given loop number.
+    Loops 1–4 = Monday–Thursday (gameplay days).
+    Loop 5+ = Friday, which is the job start date (triggers deadline lose condition).
+    """
+    return _LOOP_DAY_NAMES.get(loop_number, "Friday")
 
 
 @dataclass
 class GameClock:
-    days_until_monday: int = 4          # Thursday = 4, Friday = 3, ... Monday = 0
     current_minutes: int = OFFICE_OPEN_MINS  # Start at 9:00 AM
 
     def advance(self, minutes: int) -> list[str]:
@@ -73,9 +84,6 @@ class GameClock:
     def is_closed(self) -> bool:
         return self.current_minutes >= OFFICE_CLOSE_MINS
 
-    def is_monday(self) -> bool:
-        return self.days_until_monday <= 0
-
     def time_display(self) -> str:
         """Return human-readable time like '9:47 AM'."""
         total = self.current_minutes
@@ -86,10 +94,6 @@ class GameClock:
         if display_hour == 0:
             display_hour = 12
         return f"{display_hour}:{mins:02d} {period}"
-
-    def day_display(self) -> str:
-        idx = max(0, min(4, 4 - self.days_until_monday))
-        return _DAY_NAMES[idx]
 
     def time_bracket(self) -> str:
         """'morning' | 'lunch' | 'afternoon'"""
@@ -103,14 +107,8 @@ class GameClock:
         return ACTION_COSTS.get(verb.upper(), 5)
 
     def to_dict(self) -> dict:
-        return {
-            "days_until_monday": self.days_until_monday,
-            "current_minutes": self.current_minutes,
-        }
+        return {"current_minutes": self.current_minutes}
 
     @classmethod
     def from_dict(cls, d: dict) -> "GameClock":
-        return cls(
-            days_until_monday=d["days_until_monday"],
-            current_minutes=d["current_minutes"],
-        )
+        return cls(current_minutes=d["current_minutes"])

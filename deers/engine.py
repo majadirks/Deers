@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from deers.actions import ActionResolver, ResolutionFailure
+from deers.clock import day_name
 from deers.conditions import ConditionScheduler
 from deers.models import ParsedAction, TerminalCondition
 from deers.persistence import save_game
@@ -89,9 +90,13 @@ class GameEngine:
     def _handle_loop_reset(self) -> str:
         self.state.trigger_reset()
         save_game(self.state)
+        tomorrow = day_name(self.state.loop_number)
+        if self.state.loop_number > 4:
+            day_line = f"You drive home. Tomorrow is {tomorrow}. Your start date is {tomorrow}."
+        else:
+            day_line = f"You drive home. Tomorrow is {tomorrow}."
         parts = [
-            "The office closes at 4:00 PM. The clerk does not say goodbye.\n"
-            "You drive home. You will try again tomorrow.",
+            f"The office closes at 4:00 PM. The clerk does not say goodbye.\n{day_line}",
             self._status_line(),
             self._describe_current_location(),
         ]
@@ -193,7 +198,7 @@ class GameEngine:
         s = self.state
         return (
             f"[Loop {s.loop_number} | "
-            f"{s.clock.day_display()} {s.clock.time_display()} | "
+            f"{day_name(s.loop_number)} {s.clock.time_display()} | "
             f"Morale: {s.morale.bar()} {s.morale.percentage()}% | "
             f"Queue: {s.queue_position if s.queue_position is not None else '—'}]"
         )

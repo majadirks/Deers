@@ -12,6 +12,7 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable
 
+from deers.clock import day_name
 from deers.inventory import DocumentFactory, DocumentType
 from deers.locations import Condition
 from deers.models import DocumentFlaw, GameEvent, ParsedAction
@@ -614,7 +615,7 @@ class ActionResolver:
     ) -> Action | ResolutionFailure:
         def build_status(s: "GameState") -> str:
             loc = s.current_location()
-            day = s.clock.day_display()
+            day = day_name(s.loop_number)
             time = s.clock.time_display()
             morale_bar = s.morale.bar()
             morale_pct = s.morale.percentage()

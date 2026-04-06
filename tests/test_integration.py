@@ -164,7 +164,7 @@ class TestLoseConditions:
         s = eng.state
         scheduler = ConditionScheduler()
 
-        s.clock.days_until_monday = 0
+        s.loop_number = 5  # Friday — job start date
 
         result = scheduler.evaluate_all(s)
         assert result is not None

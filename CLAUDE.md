@@ -12,6 +12,8 @@
 - DEERS corruption is seeded; permanent_knowledge reduces corruption probability
 - Auto-save on loop reset only
 - In-game clock: 9am-4pm, lunch 11:30-12:30, actions cost minutes
+- Gameplay days: Monday (loop 1) through Thursday (loop 4); Friday (loop 5+) = START_DATE_MISSED
+- Day-of-week is derived from loop_number, not stored in GameClock
 - Multi-turn ConversationBuffer per NPC, side effects committed on close
 - Every Claude component has an authored fallback for API failures
 - Exits and exit conditions are wired in locations.py as code (not TOML)

@@ -165,11 +165,14 @@ class TestGameClock:
         c.current_minutes = 13 * 60 + 30  # 1:30 PM
         assert c.time_display() == "1:30 PM"
 
-    def test_is_monday(self):
-        c = GameClock(days_until_monday=0)
-        assert c.is_monday()
-        c.days_until_monday = 1
-        assert not c.is_monday()
+    def test_day_name(self):
+        from deers.clock import day_name
+        assert day_name(1) == "Monday"
+        assert day_name(2) == "Tuesday"
+        assert day_name(3) == "Wednesday"
+        assert day_name(4) == "Thursday"
+        assert day_name(5) == "Friday"
+        assert day_name(99) == "Friday"  # any loop > 4 is deadline day
 
     def test_time_bracket(self):
         c = GameClock(current_minutes=600)  # 10am
@@ -180,9 +183,8 @@ class TestGameClock:
         assert c.time_bracket() == "afternoon"
 
     def test_round_trip(self):
-        c = GameClock(days_until_monday=2, current_minutes=700)
+        c = GameClock(current_minutes=700)
         c2 = GameClock.from_dict(c.to_dict())
-        assert c2.days_until_monday == 2
         assert c2.current_minutes == 700
 
     def test_wait_8_times_closes_office(self):

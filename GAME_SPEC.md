@@ -57,7 +57,16 @@ deers/
 
 The game is a **time loop**. Each loop represents one day. The office opens at 9:00 AM and closes at 4:00 PM. The player starts each loop in the parking lot with a fresh DEERS record (same seed = same corruptions per loop+knowledge combination) and must navigate to the processing window before the office closes.
 
-**Start date:** Monday. The player starts on Thursday (4 days). Each loop consumes one day. If Monday arrives without a CAC, the player loses.
+**Start date:** Friday. The player starts on Monday (4 playable days: Monday–Thursday). Each loop consumes one day. The CAC processing office is only open on weekdays, and closes early on Fridays — so the player must obtain their CAC Monday through Thursday. If Friday arrives without a CAC, the player loses (START_DATE_MISSED).
+
+**Day mapping by loop:**
+| Loop | Day | Notes |
+|------|-----|-------|
+| 1 | Monday | First attempt |
+| 2 | Tuesday | |
+| 3 | Wednesday | |
+| 4 | Thursday | Last chance |
+| 5+ | Friday | Deadline — START_DATE_MISSED fires immediately |
 
 **Auto-save:** Triggers only on loop reset (office close). Not every action.
 
@@ -198,7 +207,7 @@ The game is a **time loop**. Each loop represents one day. The office opens at 9
 | Condition | Trigger |
 |-----------|---------|
 | MORALE_COLLAPSE | Morale hits 0 (coffee consumed this loop grants reprieve) |
-| START_DATE_MISSED | `clock.days_until_monday <= 0` |
+| START_DATE_MISSED | `loop_number > 4` (Friday arrives) |
 | TAILGATING | Entered installation without valid photo ID |
 | CORRECTED_CLERK | Player was confrontational with the clerk |
 

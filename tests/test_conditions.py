@@ -45,13 +45,12 @@ class TestMoraleCollapse:
 
 class TestStartDateMissed:
     def test_no_terminal_when_days_remain(self, scheduler, state):
-        assert state.clock.days_until_monday > 0
-        # Run only start_date check
+        assert state.loop_number <= 4  # loops 1-4 are Mon-Thu; no deadline yet
         result = scheduler._check_start_date_missed(state)
         assert result is None
 
-    def test_fires_on_monday(self, scheduler, state):
-        state.clock.days_until_monday = 0
+    def test_fires_on_friday(self, scheduler, state):
+        state.loop_number = 5  # Friday — job start date
         result = scheduler._check_start_date_missed(state)
         assert result is not None
         assert result.kind == LoseCondition.START_DATE_MISSED

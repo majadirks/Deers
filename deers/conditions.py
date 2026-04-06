@@ -69,15 +69,15 @@ class ConditionScheduler:
     def _check_start_date_missed(
         self, state: "GameState"
     ) -> TerminalCondition | None:
-        """Lose if Monday arrives without a CAC."""
-        if not state.clock.is_monday():
+        """Lose if Friday arrives without a CAC. Gameplay is Mon–Thu; Friday is the job start date."""
+        if state.loop_number <= 4:
             return None
         return TerminalCondition(
             kind=LoseCondition.START_DATE_MISSED,
             message=(
-                "It is Monday. You do not have a CAC. You have sent three emails "
-                "explaining the situation. No one has responded. Your start date "
-                "has technically passed.\n\n"
+                "It is Friday. Your start date is today. You do not have a CAC.\n\n"
+                "You have sent three emails explaining the situation. Two bounced. "
+                "One received an out-of-office reply dated eleven months ago.\n\n"
                 "GAME OVER: Start date missed.\n"
                 "(Four days was, in retrospect, not enough time.)"
             ),
