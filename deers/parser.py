@@ -74,18 +74,21 @@ def _parse_json_response(text: str, raw: str) -> ParsedAction:
     except (json.JSONDecodeError, ValueError):
         return _keyword_parse(raw)
 
-    verb = str(data.get("verb", "")).upper()
+    verb = str(data.get("verb") or "").upper()
     if verb not in _VALID_VERBS:
         return _keyword_parse(raw)
 
-    target = str(data.get("target", "")).lower().strip()
-    confidence = float(data.get("confidence", 1.0))
+    # target may be null/None from Claude — normalise to empty string
+    target = str(data.get("target") or "").lower().strip()
+
+    try:
+        confidence = float(data.get("confidence", 1.0))
+    except (TypeError, ValueError):
+        confidence = 1.0
+
     clarification = data.get("clarification") or None
 
-    # If Claude is unsure and offers a clarification, embed it in the target
-    # so the engine can surface it. We use a special sentinel prefix.
     if clarification and confidence < _CLARIFICATION_CONFIDENCE:
-        # Return a low-confidence parse; the engine will show the clarification.
         return ParsedAction(verb=verb, target=target, clarification=clarification)
 
     return ParsedAction(verb=verb, target=target)

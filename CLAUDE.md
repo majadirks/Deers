@@ -1,10 +1,10 @@
 # DEERS IN THE HEADLIGHTS — LLM Working Context
 
-## Current Phase: Phase 5 (Claude — Input Parser)
-## Last Completed Phase: Phase 4 (Persistence)
-## Passing Tests: 209 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration, 16 persistence)
+## Current Phase: Phase 6 (Claude — Narrator)
+## Last Completed Phase: Phase 5 (Claude — Input Parser)
+## Passing Tests: 248 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration, 16 persistence, 39 parser)
 ## Known Issues: None
-## Next Action: Write deers/claude_client.py, deers/parser.py, wire into engine
+## Next Action: Write deers/narrator.py, wire into engine, cache keyed on location:loop:morale:time
 
 ## Key Design Decisions (do not relitigate)
 - Event log is append-only; game state is projected from it

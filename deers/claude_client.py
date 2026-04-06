@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 _DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 _DEFAULT_MAX_TOKENS = 256
 

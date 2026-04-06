@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from deers.actions import ActionResolver, ResolutionFailure
 from deers.clock import day_name
+from deers.claude_client import ClaudeClient, ClaudeUnavailable
 from deers.conditions import ConditionScheduler
 from deers.models import ParsedAction, TerminalCondition
+from deers.parser import InputParser, _keyword_parse
 from deers.persistence import save_game
 from deers.state import GameState
 
@@ -22,8 +24,16 @@ class GameEngine:
         self.scheduler = ConditionScheduler()
         self.api_key = api_key
 
-        # Claude components — wired in Phase 5-7
-        self.parser = None
+        # Phase 5: InputParser (None if no api_key or anthropic not installed)
+        self.parser: InputParser | None = None
+        if api_key:
+            try:
+                client = ClaudeClient(api_key)
+                self.parser = InputParser.from_content(client, self.state.content)
+            except ClaudeUnavailable:
+                pass  # anthropic package not installed; keyword parser will be used
+
+        # Claude components — wired in Phase 6-7
         self.narrator = None
         self.dialogue = None
 
@@ -49,6 +59,12 @@ class GameEngine:
             return self._handle_dialogue(raw)
 
         parsed = self._parse(raw)
+
+        # If Claude is unsure, ask the player for clarification instead of
+        # attempting to execute an ambiguous action.
+        if parsed.clarification:
+            return parsed.clarification
+
         return self._process_action(parsed)
 
     # ------------------------------------------------------------------
@@ -157,22 +173,14 @@ class GameEngine:
         return f'{npc.display_name(self.state) if npc else "They"}: "{response}"'
 
     # ------------------------------------------------------------------
-    # Internal: parsing (Phase 3 keyword parser — replaced by Claude in Phase 5)
+    # Internal: parsing
     # ------------------------------------------------------------------
 
     def _parse(self, raw: str) -> ParsedAction:
+        """Claude parser when available; keyword fallback otherwise."""
         if self.parser:
             return self.parser.parse(raw, self.state)
-        return self._simple_parse(raw)
-
-    def _simple_parse(self, raw: str) -> ParsedAction:
-        """Keyword parser. Replaced by Claude InputParser in Phase 5."""
-        tokens = raw.strip().split()
-        if not tokens:
-            return ParsedAction(verb="EXAMINE", target="location")
-        verb = tokens[0].upper()
-        target = " ".join(tokens[1:]).lower() if len(tokens) > 1 else ""
-        return ParsedAction(verb=verb, target=target)
+        return _keyword_parse(raw)
 
     # ------------------------------------------------------------------
     # Internal: description (Phase 3 static text — replaced by NarratorEngine in Phase 6)
