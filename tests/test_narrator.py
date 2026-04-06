@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from deers.claude_client import ClaudeUnavailable
+from deers.claude_client import DummyClaudeClient
 from deers.content import load_all
 from deers.narrator import (
     NarratorEngine,
@@ -31,21 +31,6 @@ def state(content):
 
 
 GENERATED = "You are standing in a parking lot that smells of institutional ambition."
-
-
-class _MockClient:
-    def __init__(self, response: str = GENERATED):
-        self._response = response
-        self.calls: list[tuple[str, str]] = []
-
-    def complete(self, system: str, user: str, max_tokens: int = 150) -> str:
-        self.calls.append((system, user))
-        return self._response
-
-
-class _FailingClient:
-    def complete(self, system: str, user: str, max_tokens: int = 150) -> str:
-        raise ClaudeUnavailable("simulated failure")
 
 
 # ---------------------------------------------------------------------------
@@ -181,20 +166,20 @@ class TestFallbackDescription:
 
 class TestNarratorEngineFromContent:
     def test_constructs(self, content):
-        engine = NarratorEngine.from_content(_MockClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(), content)
         assert isinstance(engine, NarratorEngine)
 
     def test_system_prompt_loaded(self, content):
-        engine = NarratorEngine.from_content(_MockClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(), content)
         assert content["prompts"]["narrator"]["system"] in engine._system
 
     def test_empty_cache_by_default(self, content):
-        engine = NarratorEngine.from_content(_MockClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(), content)
         assert engine.cache == {}
 
     def test_supplied_cache_used(self, content):
         pre = {"parking_lot:1:high:morning": "Cached desc."}
-        engine = NarratorEngine.from_content(_MockClient(), content, cache=pre)
+        engine = NarratorEngine.from_content(DummyClaudeClient(), content, cache=pre)
         assert len(engine.cache) == 1
 
 
@@ -204,41 +189,41 @@ class TestNarratorEngineFromContent:
 
 class TestDescribeLocationCache:
     def test_cache_hit_returns_stored_value(self, state, content):
-        client = _MockClient()
+        client = DummyClaudeClient()
         engine = NarratorEngine.from_content(client, content)
         key = cache_key(state)
         engine.cache[key] = "Pre-cached description."
         result = engine.describe_location(state)
         assert result == "Pre-cached description."
-        assert client.calls == []  # Claude was NOT called
+        assert client.complete_calls == []  # Claude was NOT called
 
     def test_cache_miss_calls_claude(self, state, content):
-        client = _MockClient()
+        client = DummyClaudeClient()
         engine = NarratorEngine.from_content(client, content)
         engine.describe_location(state)
-        assert len(client.calls) == 1
+        assert len(client.complete_calls) == 1
 
     def test_result_stored_in_cache(self, state, content):
-        client = _MockClient(GENERATED)
+        client = DummyClaudeClient(complete_response=GENERATED)
         engine = NarratorEngine.from_content(client, content)
         engine.describe_location(state)
         key = cache_key(state)
         assert engine.cache[key] == GENERATED
 
     def test_second_call_uses_cache(self, state, content):
-        client = _MockClient()
+        client = DummyClaudeClient()
         engine = NarratorEngine.from_content(client, content)
         engine.describe_location(state)
         engine.describe_location(state)
-        assert len(client.calls) == 1  # only one real API call
+        assert len(client.complete_calls) == 1  # only one real API call
 
     def test_different_location_separate_cache_entries(self, state, content):
-        client = _MockClient()
+        client = DummyClaudeClient()
         engine = NarratorEngine.from_content(client, content)
         engine.describe_location(state)
         state.current_location_id = "installation_gate"
         engine.describe_location(state)
-        assert len(client.calls) == 2
+        assert len(client.complete_calls) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -247,15 +232,15 @@ class TestDescribeLocationCache:
 
 class TestDescribeLocationClaudePath:
     def test_returns_claude_text(self, state, content):
-        engine = NarratorEngine.from_content(_MockClient(GENERATED), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(complete_response=GENERATED), content)
         result = engine.describe_location(state)
         assert result == GENERATED
 
     def test_user_message_sent_to_claude(self, state, content):
-        client = _MockClient()
+        client = DummyClaudeClient()
         engine = NarratorEngine.from_content(client, content)
         engine.describe_location(state)
-        _, user_msg = client.calls[0]
+        _, user_msg = client.complete_calls[0]
         assert state.current_location().name in user_msg
 
 
@@ -265,19 +250,19 @@ class TestDescribeLocationClaudePath:
 
 class TestDescribeLocationFallback:
     def test_falls_back_on_claude_unavailable(self, state, content):
-        engine = NarratorEngine.from_content(_FailingClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(raises=True), content)
         result = engine.describe_location(state)
         # Should return static description, not raise
         assert state.current_location().static_description in result
 
     def test_fallback_does_not_cache(self, state, content):
         """Failed calls must not be cached — next time should retry Claude."""
-        engine = NarratorEngine.from_content(_FailingClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(raises=True), content)
         engine.describe_location(state)
         assert cache_key(state) not in engine.cache
 
     def test_fallback_never_raises(self, state, content):
-        engine = NarratorEngine.from_content(_FailingClient(), content)
+        engine = NarratorEngine.from_content(DummyClaudeClient(raises=True), content)
         result = engine.describe_location(state)
         assert isinstance(result, str)
 
@@ -306,7 +291,7 @@ class TestEngineWiring:
         eng = GameEngine("TestPlayer")
         # Inject narrator with a fixed response
         engine_narrator = NarratorEngine.from_content(
-            _MockClient("Narrator was here."), content
+            DummyClaudeClient(complete_response="Narrator was here."), content
         )
         eng.narrator = engine_narrator
         result = eng._describe_current_location()
@@ -319,7 +304,7 @@ class TestEngineWiring:
 
         eng = GameEngine("TestPlayer")
         engine_narrator = NarratorEngine.from_content(
-            _MockClient(), content, cache={"k": "v"}
+            DummyClaudeClient(), content, cache={"k": "v"}
         )
         eng.narrator = engine_narrator
         eng.save()

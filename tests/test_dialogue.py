@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from deers.claude_client import ClaudeUnavailable
+from deers.claude_client import DummyClaudeClient
 from deers.content import load_all
 from deers.dialogue import (
     DialogueEngine,
@@ -36,8 +36,11 @@ def state(content):
 
 
 def _make_engine(content, topic_resp=None, chat_resp="Noted."):
-    """Build a DialogueEngine backed by mock clients."""
-    client = _MockClient(topic_resp=topic_resp or _freeform_json(), chat_resp=chat_resp)
+    """Build a DialogueEngine backed by a DummyClaudeClient."""
+    client = DummyClaudeClient(
+        complete_response=topic_resp or _freeform_json(),
+        chat_response=chat_resp,
+    )
     return DialogueEngine.from_content(client, content), client
 
 
@@ -63,32 +66,6 @@ def _freeform_json():
 
 def _topic_json(topic, confidence=0.9):
     return json.dumps({"topic": topic, "confidence": confidence})
-
-
-class _MockClient:
-    """Duck-typed ClaudeClient. Returns pre-set responses for complete() and chat()."""
-
-    def __init__(self, topic_resp: str = "", chat_resp: str = "Noted."):
-        self._topic_resp = topic_resp
-        self._chat_resp = chat_resp
-        self.complete_calls: list[tuple[str, str]] = []
-        self.chat_calls: list[tuple[str, list]] = []
-
-    def complete(self, system: str, user: str, max_tokens: int = 64) -> str:
-        self.complete_calls.append((system, user))
-        return self._topic_resp
-
-    def chat(self, system: str, messages: list[dict], max_tokens: int = 150) -> str:
-        self.chat_calls.append((system, messages))
-        return self._chat_resp
-
-
-class _FailingClient:
-    def complete(self, system, user, max_tokens=64):
-        raise ClaudeUnavailable("fail")
-
-    def chat(self, system, messages, max_tokens=150):
-        raise ClaudeUnavailable("fail")
 
 
 # ---------------------------------------------------------------------------
@@ -321,7 +298,7 @@ class TestDialogueEngineClose:
 
 class TestDialogueEngineFallback:
     def test_uses_fallback_line_when_chat_fails(self, state, content):
-        client = _FailingClient()
+        client = DummyClaudeClient(raises=True)
         engine = DialogueEngine.from_content(client, content)
         _activate(state, npc_id="e7")
         result = engine.respond("hello", state)
@@ -330,7 +307,7 @@ class TestDialogueEngineFallback:
 
     def test_topic_freeform_when_parser_fails(self, state, content):
         # Topic parse failure → freeform → no topic effects accrued
-        client = _FailingClient()
+        client = DummyClaudeClient(raises=True)
         engine = DialogueEngine.from_content(client, content)
         conv = _activate(state, npc_id="e7")
         before_morale = state.morale.current
@@ -339,7 +316,7 @@ class TestDialogueEngineFallback:
         assert conv.pending_morale_delta == 0
 
     def test_respond_never_raises(self, state, content):
-        client = _FailingClient()
+        client = DummyClaudeClient(raises=True)
         engine = DialogueEngine.from_content(client, content)
         _activate(state, npc_id="e7")
         result = engine.respond("any input", state)

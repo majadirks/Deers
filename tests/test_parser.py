@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from deers.claude_client import ClaudeUnavailable
+from deers.claude_client import ClaudeUnavailable, DummyClaudeClient
 from deers.content import load_all
 from deers.models import ParsedAction
 from deers.parser import (
@@ -33,23 +33,6 @@ def state(content):
     return GameState.new_game("TestPlayer", content)
 
 
-class _MockClient:
-    """Duck-typed ClaudeClient that returns a fixed string."""
-
-    def __init__(self, response_text: str):
-        self._response = response_text
-
-    def complete(self, system: str, user: str, max_tokens: int = 128) -> str:
-        return self._response
-
-
-class _FailingClient:
-    """Duck-typed ClaudeClient that always raises ClaudeUnavailable."""
-
-    def complete(self, system: str, user: str, max_tokens: int = 128) -> str:
-        raise ClaudeUnavailable("simulated failure")
-
-
 def _make_json(**kwargs) -> str:
     defaults = {"verb": "EXAMINE", "target": "location", "confidence": 0.95, "clarification": None}
     defaults.update(kwargs)
@@ -65,6 +48,57 @@ class TestClaudeUnavailable:
         exc = ClaudeUnavailable("test")
         assert isinstance(exc, Exception)
         assert str(exc) == "test"
+
+
+# ---------------------------------------------------------------------------
+# DummyClaudeClient
+# ---------------------------------------------------------------------------
+
+class TestDummyClaudeClient:
+    def test_complete_returns_configured_response(self):
+        client = DummyClaudeClient(complete_response="hello")
+        assert client.complete("sys", "user") == "hello"
+
+    def test_chat_returns_configured_response(self):
+        client = DummyClaudeClient(chat_response="world")
+        assert client.chat("sys", [{"role": "user", "content": "hi"}]) == "world"
+
+    def test_raises_on_complete_when_configured(self):
+        client = DummyClaudeClient(raises=True)
+        with pytest.raises(ClaudeUnavailable):
+            client.complete("sys", "user")
+
+    def test_raises_on_chat_when_configured(self):
+        client = DummyClaudeClient(raises=True)
+        with pytest.raises(ClaudeUnavailable):
+            client.chat("sys", [])
+
+    def test_complete_calls_recorded(self):
+        client = DummyClaudeClient()
+        client.complete("sys", "user1")
+        client.complete("sys", "user2")
+        assert len(client.complete_calls) == 2
+        assert client.complete_calls[0] == ("sys", "user1")
+
+    def test_chat_calls_recorded(self):
+        client = DummyClaudeClient()
+        msgs = [{"role": "user", "content": "hi"}]
+        client.chat("sys", msgs)
+        assert len(client.chat_calls) == 1
+        assert client.chat_calls[0] == ("sys", msgs)
+
+    def test_call_count_sums_both(self):
+        client = DummyClaudeClient()
+        client.complete("s", "u")
+        client.chat("s", [])
+        client.chat("s", [])
+        assert client.call_count == 3
+
+    def test_no_calls_initially(self):
+        client = DummyClaudeClient()
+        assert client.complete_calls == []
+        assert client.chat_calls == []
+        assert client.call_count == 0
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +202,6 @@ class TestParseJsonResponse:
         assert result.verb == "EXAMINE"
 
     def test_high_confidence_clarification_is_ignored(self):
-        """Above threshold: act on the verb, don't surface the clarification."""
         text = _make_json(
             verb="EXAMINE",
             target="desk",
@@ -181,7 +214,6 @@ class TestParseJsonResponse:
         assert result.target == "desk"
 
     def test_exactly_at_threshold_not_clarification(self):
-        """Confidence at threshold exactly: proceed, no clarification."""
         text = _make_json(
             verb="GO",
             target="gate",
@@ -226,7 +258,6 @@ class TestBuildContext:
         assert "queue_position:" in ctx
 
     def test_no_npcs_at_parking_lot(self, state):
-        # parking_lot has no NPCs; should say 'none'
         assert state.current_location_id == "parking_lot"
         ctx = _build_context(state)
         assert "npcs_present: none" in ctx
@@ -242,7 +273,7 @@ class TestBuildContext:
 
 class TestInputParserFromContent:
     def test_constructs_from_content(self, content):
-        client = _MockClient(_make_json())
+        client = DummyClaudeClient(complete_response=_make_json())
         parser = InputParser.from_content(client, content)
         assert isinstance(parser, InputParser)
         assert content["prompts"]["parser"]["system"] in parser._system
@@ -255,7 +286,7 @@ class TestInputParserFromContent:
 class TestInputParserClaudePath:
     def test_returns_parsed_action(self, content, state):
         response = _make_json(verb="GO", target="installation_gate", confidence=0.95)
-        parser = InputParser.from_content(_MockClient(response), content)
+        parser = InputParser.from_content(DummyClaudeClient(complete_response=response), content)
         result = parser.parse("head to the gate", state)
         assert isinstance(result, ParsedAction)
         assert result.verb == "GO"
@@ -268,19 +299,19 @@ class TestInputParserClaudePath:
             confidence=0.4,
             clarification="Who would you like to speak with?",
         )
-        parser = InputParser.from_content(_MockClient(response), content)
+        parser = InputParser.from_content(DummyClaudeClient(complete_response=response), content)
         result = parser.parse("talk to someone", state)
         assert result.clarification == "Who would you like to speak with?"
 
     def test_malformed_response_falls_back_to_keyword(self, content, state):
-        parser = InputParser.from_content(_MockClient("oops not json"), content)
+        parser = InputParser.from_content(DummyClaudeClient(complete_response="oops not json"), content)
         result = parser.parse("go gate", state)
         assert result.verb == "GO"
         assert result.target == "gate"
 
     def test_markdown_wrapped_response_handled(self, content, state):
         response = "```json\n" + _make_json(verb="EXAMINE", target="location") + "\n```"
-        parser = InputParser.from_content(_MockClient(response), content)
+        parser = InputParser.from_content(DummyClaudeClient(complete_response=response), content)
         result = parser.parse("look around", state)
         assert result.verb == "EXAMINE"
 
@@ -291,19 +322,18 @@ class TestInputParserClaudePath:
 
 class TestInputParserFallbackPath:
     def test_falls_back_on_claude_unavailable(self, content, state):
-        parser = InputParser.from_content(_FailingClient(), content)
+        parser = InputParser.from_content(DummyClaudeClient(raises=True), content)
         result = parser.parse("go gate", state)
-        # Should fall back to keyword parse
         assert result.verb == "GO"
         assert result.target == "gate"
 
     def test_fallback_never_raises(self, content, state):
-        parser = InputParser.from_content(_FailingClient(), content)
+        parser = InputParser.from_content(DummyClaudeClient(raises=True), content)
         result = parser.parse("some completely nonsensical input !!!", state)
         assert isinstance(result, ParsedAction)
 
     def test_fallback_empty_input(self, content, state):
-        parser = InputParser.from_content(_FailingClient(), content)
+        parser = InputParser.from_content(DummyClaudeClient(raises=True), content)
         result = parser.parse("", state)
         assert result.verb == "EXAMINE"
         assert result.target == "location"
@@ -317,10 +347,8 @@ class TestEngineWiring:
     def test_no_api_key_parser_is_none(self, content):
         from deers.engine import GameEngine
         eng = GameEngine.__new__(GameEngine)
-        # Simulate init without api_key
         from deers.actions import ActionResolver
         from deers.conditions import ConditionScheduler
-        from deers.parser import _keyword_parse
         eng.state = GameState.new_game("T", content)
         eng.resolver = ActionResolver()
         eng.scheduler = ConditionScheduler()
@@ -334,7 +362,6 @@ class TestEngineWiring:
         from deers.engine import GameEngine
         eng = GameEngine("TestPlayer")
         assert eng.parser is None
-        # Go to gate is a valid keyword-parseable command
         result = eng.handle_input("go installation_gate")
         assert isinstance(result, str)
         assert len(result) > 0
@@ -342,7 +369,6 @@ class TestEngineWiring:
     def test_clarification_returned_directly(self, content):
         from deers.engine import GameEngine
         eng = GameEngine("TestPlayer")
-        # Inject a mock parser that always returns a clarification
         class _ClarifyParser:
             def parse(self, raw, state):
                 return ParsedAction(
@@ -360,5 +386,4 @@ class TestEngineWiring:
                 return ParsedAction(verb="EXAMINE", target="location")
         eng.parser = _DirectParser()
         result = eng.handle_input("look around")
-        # Should not be the clarification, should be a real location description
-        assert "[Loop" in result  # status line present
+        assert "[Loop" in result
