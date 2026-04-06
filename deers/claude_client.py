@@ -29,14 +29,23 @@ class ClaudeClient:
         max_tokens: int = _DEFAULT_MAX_TOKENS,
     ) -> str:
         """Send a single-turn completion request. Returns the text of the first content block."""
+        return self.chat(system, [{"role": "user", "content": user}], max_tokens)
+
+    def chat(
+        self,
+        system: str,
+        messages: list[dict],
+        max_tokens: int = _DEFAULT_MAX_TOKENS,
+    ) -> str:
+        """Send a multi-turn chat request. `messages` is a list of Claude API message dicts."""
         try:
-            message = self._client.messages.create(
+            response = self._client.messages.create(
                 model=self.model,
                 max_tokens=max_tokens,
                 system=system,
-                messages=[{"role": "user", "content": user}],
+                messages=messages,
             )
-            return message.content[0].text
+            return response.content[0].text
         except Exception as exc:
             raise ClaudeUnavailable(str(exc)) from exc
 

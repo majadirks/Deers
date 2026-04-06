@@ -6,6 +6,7 @@ from deers.actions import ActionResolver, ResolutionFailure
 from deers.clock import day_name
 from deers.claude_client import ClaudeClient, ClaudeUnavailable
 from deers.conditions import ConditionScheduler
+from deers.dialogue import DialogueEngine
 from deers.models import ParsedAction, TerminalCondition
 from deers.narrator import NarratorEngine
 from deers.parser import InputParser, _keyword_parse
@@ -28,7 +29,7 @@ class GameEngine:
         # Phase 5-7: Claude components (None if no api_key or anthropic not installed)
         self.parser: InputParser | None = None
         self.narrator: NarratorEngine | None = None
-        self.dialogue = None
+        self.dialogue: DialogueEngine | None = None
 
         if api_key:
             try:
@@ -36,6 +37,7 @@ class GameEngine:
                 self.parser = InputParser.from_content(client, self.state.content)
                 narrator_cache = load_narrator_cache()
                 self.narrator = NarratorEngine.from_content(client, self.state.content, narrator_cache)
+                self.dialogue = DialogueEngine.from_content(client, self.state.content)
             except ClaudeUnavailable:
                 pass  # anthropic package not installed; fallbacks will be used
 
@@ -130,17 +132,21 @@ class GameEngine:
         return condition.message
 
     # ------------------------------------------------------------------
-    # Internal: dialogue (Phase 3 stub — replaced by DialogueEngine in Phase 7)
+    # Internal: dialogue
     # ------------------------------------------------------------------
 
     def _handle_dialogue(self, raw: str) -> str:
-        """
-        Phase 3 stub: simple keyword dialogue without Claude.
-        Returns NPC fallback line for most input; closes on leave/bye.
-        """
+        """Route to DialogueEngine when available; fall back to keyword stub."""
         if self.dialogue:
-            return self.dialogue.respond(raw, self.state)
+            npc_response = self.dialogue.respond(raw, self.state)
+            # If the conversation just ended, append the updated world state.
+            conv = self.state.current_conversation
+            if conv is None or not conv.is_active:
+                parts = [p for p in [npc_response, self._status_line(), self._describe_current_location()] if p]
+                return "\n\n".join(parts)
+            return npc_response
 
+        # ---- Keyword stub (no Claude dialogue configured) ----
         conv = self.state.current_conversation
         if conv is None:
             return ""
@@ -151,9 +157,7 @@ class GameEngine:
         if any(word in raw.lower() for word in close_words):
             effects = conv.close()
             if npc and effects["trust_delta"]:
-                npc.relationship.trust = max(
-                    0, npc.relationship.trust + effects["trust_delta"]
-                )
+                npc.relationship.trust = max(0, npc.relationship.trust + effects["trust_delta"])
             for key in effects.get("knowledge_gained", []):
                 self.state.permanent_knowledge.add(key)
             self.state.morale.apply_delta(effects.get("morale_delta", 0))
@@ -165,7 +169,6 @@ class GameEngine:
             ]
             return "\n\n".join(parts)
 
-        # Record turns
         conv.add_player(raw)
         response = npc.card.fallback_line if npc else "..."
         conv.add_npc(response)

@@ -1,10 +1,10 @@
 # DEERS IN THE HEADLIGHTS — LLM Working Context
 
-## Current Phase: Phase 7 (Claude — Dialogue)
-## Last Completed Phase: Phase 6 (Claude — Narrator)
-## Passing Tests: 290 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration, 16 persistence, 39 parser, 42 narrator)
+## Current Phase: Phase 8 (Integration, Balance, Polish)
+## Last Completed Phase: Phase 7 (Claude — Dialogue)
+## Passing Tests: 346 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration, 16 persistence, 39 parser, 42 narrator, 56 dialogue)
 ## Known Issues: None
-## Next Action: Write deers/dialogue.py, topic detection, trust-gated knowledge, conversation close
+## Next Action: Verify all 3 win conditions are playable end-to-end, morale economy tuning, endings in content/endings.toml, HELP command, status display polish
 
 ## Key Design Decisions (do not relitigate)
 - Event log is append-only; game state is projected from it
