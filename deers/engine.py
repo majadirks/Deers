@@ -7,8 +7,9 @@ from deers.clock import day_name
 from deers.claude_client import ClaudeClient, ClaudeUnavailable
 from deers.conditions import ConditionScheduler
 from deers.models import ParsedAction, TerminalCondition
+from deers.narrator import NarratorEngine
 from deers.parser import InputParser, _keyword_parse
-from deers.persistence import save_game
+from deers.persistence import load_narrator_cache, save_game, save_narrator_cache
 from deers.state import GameState
 
 
@@ -24,22 +25,29 @@ class GameEngine:
         self.scheduler = ConditionScheduler()
         self.api_key = api_key
 
-        # Phase 5: InputParser (None if no api_key or anthropic not installed)
+        # Phase 5-7: Claude components (None if no api_key or anthropic not installed)
         self.parser: InputParser | None = None
+        self.narrator: NarratorEngine | None = None
+        self.dialogue = None
+
         if api_key:
             try:
                 client = ClaudeClient(api_key)
                 self.parser = InputParser.from_content(client, self.state.content)
+                narrator_cache = load_narrator_cache()
+                self.narrator = NarratorEngine.from_content(client, self.state.content, narrator_cache)
             except ClaudeUnavailable:
-                pass  # anthropic package not installed; keyword parser will be used
-
-        # Claude components — wired in Phase 6-7
-        self.narrator = None
-        self.dialogue = None
+                pass  # anthropic package not installed; fallbacks will be used
 
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
+
+    def save(self) -> None:
+        """Persist game state and narrator cache (called on loop reset and quit)."""
+        save_game(self.state)
+        if self.narrator is not None:
+            save_narrator_cache(self.narrator.cache)
 
     def start(self) -> str:
         """Return the opening description."""
@@ -105,7 +113,7 @@ class GameEngine:
 
     def _handle_loop_reset(self) -> str:
         self.state.trigger_reset()
-        save_game(self.state)
+        self.save()
         tomorrow = day_name(self.state.loop_number)
         if self.state.loop_number > 4:
             day_line = f"You drive home. Tomorrow is {tomorrow}. Your start date is {tomorrow}."

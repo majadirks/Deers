@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from deers.engine import GameEngine
-from deers.persistence import load_game, save_game, save_exists
+from deers.persistence import load_game, save_exists
 
 
 def _load_api_key() -> str | None:
@@ -50,12 +50,12 @@ def main() -> None:
         try:
             raw = input("> ").strip()
         except (EOFError, KeyboardInterrupt):
-            save_game(engine.state)
+            engine.save()
             print("\nGame saved.")
             break
 
         if raw.upper() in ("QUIT", "EXIT", "Q"):
-            save_game(engine.state)
+            engine.save()
             print("Game saved. Goodbye.")
             break
 
