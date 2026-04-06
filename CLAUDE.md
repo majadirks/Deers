@@ -1,10 +1,10 @@
 # DEERS IN THE HEADLIGHTS — LLM Working Context
 
-## Current Phase: Phase 3 (Game Logic — Deterministic Core)
-## Last Completed Phase: Phase 2 (Core Data Models)
-## Passing Tests: 75 passing (14 content, 61 model tests)
+## Current Phase: Phase 4 (Persistence)
+## Last Completed Phase: Phase 3 (Game Logic — Deterministic Core)
+## Passing Tests: 193 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration)
 ## Known Issues: None
-## Next Action: Write deers/actions.py — implement Action, ResolutionFailure, ActionResolver with all 8 verbs
+## Next Action: Write deers/persistence.py, wire auto-save into engine, wire load into main.py
 
 ## Key Design Decisions (do not relitigate)
 - Event log is append-only; game state is projected from it
