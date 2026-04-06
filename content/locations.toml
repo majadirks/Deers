@@ -1,0 +1,200 @@
+[[location]]
+id = "parking_lot"
+name = "Installation Parking Lot"
+base_time_cost_minutes = 0
+static_description = "You are standing in a parking lot the color of bureaucratic resignation. The installation gate is ahead of you. Your car is behind you. One of these directions leads to a CAC. The other leads to a different parking lot."
+
+[location.static_facts]
+outside = true
+distance_to_gate = "approximately 200 meters"
+visible_features = ["main gate", "visitor control center sign", "queue of vehicles"]
+time_note = "The gate opens at 0600. The DEERS office opens at 0900. These are not the same event."
+tone = "exposed, transitional, mildly hostile"
+
+[[location.features]]
+id = "car"
+name = "Your Car"
+examine_text = "A vehicle. Yours. It contains a phone charger, two years of parking receipts, and the vague sense that you should have prepared more for this."
+interactions = {}
+
+[[location.features]]
+id = "visitor_sign"
+name = "Visitor Control Center Sign"
+examine_text = "The sign lists hours: M-F 0800-1600. It does not list exceptions. There are exceptions."
+interactions = {}
+
+
+[[location]]
+id = "installation_gate"
+name = "Installation Gate"
+base_time_cost_minutes = 10
+static_description = "A guard shack stands between you and the rest of the installation. The MP behind the window is looking at you with the expression of someone who has answered the same three questions approximately eleven thousand times."
+
+[location.static_facts]
+inside = false
+security_level = "moderate"
+visible_features = ["guard shack", "vehicle barrier", "pedestrian lane", "visitor log"]
+mp_mood = "professionally neutral"
+tone = "formal, procedural, vaguely threatening"
+
+[[location.features]]
+id = "guard_shack"
+name = "Guard Shack Window"
+examine_text = "A window of smudged plexiglass. On the other side: an MP, a clipboard, a coffee mug that says WORLD'S OKAYEST SOLDIER, and the power to deny you entry."
+interactions = {KNOCK = "player_knocks_gate"}
+
+[[location.features]]
+id = "visitor_log"
+name = "Visitor Log"
+examine_text = "A clipboard hanging on the exterior wall. It lists the names of everyone who has passed through today. Most entries include a phone number and a unit. Yours will say 'DEERS' in the purpose field, which the MP will find neither surprising nor interesting."
+interactions = {}
+
+
+[[location]]
+id = "waiting_room"
+name = "DEERS Office Waiting Room"
+base_time_cost_minutes = 5
+static_description = "Plastic chairs in a color that might have been beige when purchased and has since become something else. A television in the corner plays a cable news channel with the sound off and subtitles that are wrong in ways that feel intentional. A number dispenser stands by the door."
+
+[location.static_facts]
+inside = true
+capacity = "approximately 20 chairs"
+visible_features = ["number dispenser", "chairs", "television", "bulletin board", "vending alcove entrance"]
+bulletin_board_contents = "DA Form 5500, privacy act statement, poster about CAC renewal deadlines, a flyer for a 5K that happened in 2019"
+atmosphere = "suspended animation"
+tone = "exhausted, fluorescent, quietly desperate"
+
+[[location.features]]
+id = "number_dispenser"
+name = "Number Dispenser"
+examine_text = "A red plastic dispenser containing numbered tickets. It currently shows a number that is either close to yours or very far from yours."
+interactions = {TAKE = "player_takes_number", USE = "player_uses_dispenser"}
+
+[[location.features]]
+id = "bulletin_board"
+name = "Bulletin Board"
+examine_text = "A corkboard covered in documents at various stages of yellowing. The most recent item is dated eight months ago. Several items appear to be answers to questions no one has asked in years."
+interactions = {}
+
+[[location.features]]
+id = "television"
+name = "Television"
+examine_text = "The closed captions are wrong. Not slightly wrong. Categorically wrong. The chyron currently reads something that bears no relationship to the visible footage. You watch it for longer than you intended."
+interactions = {}
+
+
+[[location]]
+id = "queue_window"
+name = "DEERS Processing Window"
+base_time_cost_minutes = 5
+static_description = "A chest-high counter with a thick sheet of plexiglass. On the other side, a clerk. The clerk has the bearing of someone who has heard every possible explanation and found none of them relevant. A small sign reads: PLEASE HAVE ALL DOCUMENTS READY. Another sign reads: NO FOOD OR DRINK. A third sign reads: SMILE."
+
+[location.static_facts]
+inside = true
+plexiglass_present = true
+visible_features = ["processing window", "clerk", "document scanner", "DEERS terminal", "sign collection"]
+clerk_status = "present during office hours, excluding lunch"
+tone = "transactional, fluorescent, the end of the line"
+
+[[location.features]]
+id = "processing_window"
+name = "Processing Window"
+examine_text = "The window where it happens. The DEERS terminal is visible on the other side. The clerk controls the terminal. You do not control the clerk. These relationships are fixed."
+interactions = {APPROACH = "player_approaches_window"}
+
+[[location.features]]
+id = "sign_collection"
+name = "Signs on the Wall"
+examine_text = "Four signs. PLEASE HAVE ALL DOCUMENTS READY. NO FOOD OR DRINK. SMILE. And, partially obscured by the SMILE sign: THIS OFFICE CANNOT PROCESS REQUESTS INVOLVING DMDC DATABASE ERRORS. You stare at this last one for a while."
+interactions = {}
+
+
+[[location]]
+id = "vending_alcove"
+name = "Vending Alcove"
+base_time_cost_minutes = 3
+static_description = "A small alcove off the waiting room containing two vending machines and a water fountain. The vending machine on the left is functional. The vending machine on the right has an OUT OF ORDER sign that appears to have been printed on official letterhead."
+
+[location.static_facts]
+inside = true
+visible_features = ["working vending machine", "broken vending machine", "water fountain"]
+coffee_available = true
+coffee_price = "$1.75"
+tone = "liminal, slightly hopeful, the smell of old carpet and machine coffee"
+
+[[location.features]]
+id = "working_vending_machine"
+name = "Vending Machine (Working)"
+examine_text = "A vending machine containing: coffee (B3), water (C1), chips in three varieties (D1-D3), and something in slot E4 that has no label and has been there since before the current administration."
+interactions = {USE = "player_uses_vending", BUY = "player_buys_item"}
+
+[[location.features]]
+id = "broken_vending_machine"
+name = "Vending Machine (Out of Order)"
+examine_text = "Out of order. The sign explaining this was printed on what appears to be a memorandum template. Someone took this seriously."
+interactions = {}
+
+[[location.features]]
+id = "water_fountain"
+name = "Water Fountain"
+examine_text = "A standard installation water fountain. The water is cold. This is, given everything, a minor mercy."
+interactions = {USE = "player_drinks_water"}
+
+
+[[location]]
+id = "base_library"
+name = "Base Library"
+base_time_cost_minutes = 15
+static_description = "Building 47, across from the PX. Quieter than the waiting room by approximately one order of magnitude. Fluorescent lighting here is softer, or at least less accusatory. A photocopier stands in the corner, next to a sign explaining the photocopier's fee schedule."
+
+[location.static_facts]
+inside = true
+distance_from_deers = "approximately 10 minutes on foot"
+visible_features = ["photocopier", "reference desk", "periodical section", "computer terminals"]
+photocopier_accepts = "civilian ID"
+photocopier_cost = "$0.10 per page"
+tone = "quiet, slightly musty, unexpectedly useful"
+
+[[location.features]]
+id = "photocopier"
+name = "Photocopier"
+examine_text = "A Xerox machine of indeterminate age. A sign above it reads: $0.10/PAGE. ACCEPTS: COINS, MILITARY ID, CIVILIAN ID. DO NOT COPY CLASSIFIED DOCUMENTS. This last instruction raises questions you choose not to pursue."
+interactions = {USE = "player_uses_photocopier"}
+
+[[location.features]]
+id = "reference_desk"
+name = "Reference Desk"
+examine_text = "Staffed by a civilian librarian who appears to have achieved a state of genuine equanimity about their circumstances. They have seen everything. They are fine."
+interactions = {TALK = "player_talks_librarian"}
+
+[[location.features]]
+id = "computer_terminals"
+name = "Computer Terminals"
+examine_text = "Three terminals available for public use. Two are occupied. The third has a sticky note on it reading: TOUCH ID REQUIRED. You do not have a touch ID. Yet."
+interactions = {}
+
+
+[[location]]
+id = "supervisors_door"
+name = "Supervisor's Office (Exterior)"
+base_time_cost_minutes = 5
+static_description = "A door. Solid wood veneer, institutional brown. A nameplate holder is mounted beside it, currently empty — the name has been removed for reasons no one will explain. The door is closed. A sign reads: BY APPOINTMENT ONLY. There is no mechanism for making an appointment."
+
+[location.static_facts]
+inside = true
+supervisor_present = false
+visible_features = ["door", "empty_nameplate", "by_appointment_sign"]
+note = "The supervisor is always described but never directly encountered. They exist as a narrative force."
+tone = "ominous, Kafkaesque, final"
+
+[[location.features]]
+id = "supervisors_door_feature"
+name = "Supervisor's Door"
+examine_text = "The door. Closed. The nameplate holder is empty. You could knock. The sign says by appointment only. There is no listed process for making an appointment. The door is very solid."
+interactions = {KNOCK = "player_knocks_supervisor"}
+
+[[location.features]]
+id = "empty_nameplate"
+name = "Empty Nameplate Holder"
+examine_text = "A brass nameplate holder, empty. Rectangular marks in the paint on either side suggest the previous nameplate was larger. Whatever name was there has been gone long enough for the wall to fade around its absence."
+interactions = {}

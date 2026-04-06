@@ -1,0 +1,171 @@
+[[npc]]
+id = "clerk"
+archetype = "clerk"
+is_permanent = false
+voice_description = "Speaks in short declarative sentences. Never volunteers information. Responds to emotional appeals with procedural deflection. Uses the passive voice when delivering bad news, as if the rules are weather. Occasionally sighs in a way that is technically inaudible but communicatively loud."
+fallback_line = "I'm going to need to see your documents."
+
+[npc.knowledge_map]
+deers_fix = "The clerk can explain what is wrong with a DEERS field but not how to fix it. They can note which fields are blocking issuance. They cannot fix DMDC-level errors and will say so in exactly those words."
+workaround = "The clerk does not know the workaround. If asked, they will suggest contacting HR."
+appointment_system = "The clerk controls the queue. They call numbers in order. There is no expediting. Attempts to expedite will be noted."
+supervisor_name = "The supervisor's name is not something the clerk discusses. There is a supervisor. That is all."
+transcendence_hint = "The clerk, at trust level 2, will accidentally mention that their predecessor 'became part of the system.' They will not elaborate. They will seem unsettled."
+sympathize = "The clerk acknowledges the situation is frustrating without conceding that anything could or should be different."
+commiserate = "The clerk has been here for three years. The system was like this when they arrived. They have made peace with this. Mostly."
+
+[npc.trust_thresholds]
+deers_fix = 0
+appointment_system = 0
+sympathize = 0
+workaround = 99
+supervisor_name = 99
+transcendence_hint = 2
+commiserate = 1
+
+[npc.morale_deltas]
+deers_fix = -2
+workaround = -3
+appointment_system = -1
+sympathize = 1
+commiserate = 2
+transcendence_hint = 0
+
+[npc.is_present_at]
+locations = ["queue_window"]
+hours = "office_hours_excluding_lunch"
+
+
+[[npc]]
+id = "e7"
+archetype = "veteran"
+is_permanent = true
+voice_description = "Speaks in complete sentences but with the economy of someone who has said everything at least twice before. Dry. Uses military time. Refers to regulations by number. Has a memory for details that should not be memorable. Does not complain directly; instead catalogues facts that happen to be complaints."
+fallback_line = "You want my advice? Get there before 0900."
+
+[npc.knowledge_map]
+workaround = "There is a DEERS help desk number — DSN 600-DEERS, commercial 1-800-538-9552 — that bypasses the local system. Calling it requires a specific case number format. The E-7 knows the format. He will only share it with someone who has demonstrated patience and bought him a coffee from the vending machine."
+deers_fix = "The E-7 has been through in-processing four times. He knows which field errors are fixable locally and which ones require DMDC. He knows the DMDC process takes six to eight weeks and offers no tracking number."
+appointment_system = "The appointment system is managed by a spreadsheet that one specific GS-7 maintains. There is no online portal. The spreadsheet is updated on Fridays. Today is Thursday."
+base_library_location = "The base library is in Building 47, across from the PX. The photocopier there accepts civilian ID and charges ten cents a page. It is the only copier on the installation that does not require a CAC to operate."
+supervisor_name = "The supervisor's name is redacted from this field pending trust level 2."
+transcendence_hint = "At trust level 4, the E-7 will mention that he once saw a contractor who had been coming in every week for three months. One day they stopped coming. The clerk seemed different after that. He does not know what happened."
+sympathize = "The E-7 says nothing sympathetic. He says things that are factually accurate and structurally sympathetic. There is a difference."
+commiserate = "The E-7 has a story about a DEERS error that took eleven months to resolve. He tells it without apparent emotion. It is a terrible story."
+
+[npc.trust_thresholds]
+deers_fix = 0
+appointment_system = 1
+base_library_location = 1
+supervisor_name = 2
+workaround = 3
+transcendence_hint = 4
+sympathize = 0
+commiserate = 0
+
+[npc.morale_deltas]
+deers_fix = 1
+workaround = 3
+appointment_system = 0
+base_library_location = 2
+supervisor_name = 1
+transcendence_hint = -1
+sympathize = 2
+commiserate = -1
+
+[npc.is_present_at]
+locations = ["waiting_room"]
+hours = "always_during_office_hours"
+
+
+[[npc]]
+id = "contractor"
+archetype = "contractor"
+is_permanent = false
+voice_description = "Speaks too much. Starts sentences before finishing thoughts. Uses civilian corporate jargon incorrectly in a military context. Asks questions that reveal exactly how unprepared they are, then answers their own questions incorrectly. Emotionally variable: each loop finds them at a different stage of the bureaucratic grief cycle."
+fallback_line = "I've been here since seven. Seven in the morning. It's — what time is it?"
+
+[npc.knowledge_map]
+deers_fix = "The contractor has the wrong information about DEERS fixes. Whatever they say should be treated as 50% likely to be wrong. They learned it from someone else who also did not know."
+appointment_system = "The contractor believes there is an online portal. There is not. They tried it. The URL exists but leads to an error page that has been there since 2018."
+base_library_location = "The contractor knows where the library is because they tried to use its internet terminals to access the nonexistent portal. The library is in Building 47."
+workaround = "The contractor has heard about the help desk number. They do not have the correct number. Their number is for a different DMDC system."
+sympathize = "The contractor is deeply sympathetic in ways that are entirely about themselves."
+commiserate = "The contractor's situation is, if anything, worse than yours. They are on their third loop. They have a hotel receipt for three nights."
+
+[npc.trust_thresholds]
+deers_fix = 0
+appointment_system = 0
+base_library_location = 0
+workaround = 0
+sympathize = 0
+commiserate = 0
+
+[npc.morale_deltas]
+deers_fix = -1
+appointment_system = -1
+base_library_location = 1
+workaround = -2
+sympathize = -1
+commiserate = -2
+
+[npc.is_present_at]
+locations = ["waiting_room", "vending_alcove"]
+hours = "office_hours"
+
+
+[[npc]]
+id = "queue_cutter"
+archetype = "queue_cutter"
+is_permanent = false
+voice_description = "Confident. Presumes familiarity. Uses first names of people they have not met. Makes statements that are almost requests. Has the practiced ease of someone who has cut every queue they have ever encountered and has not yet been stopped."
+fallback_line = "Hey, real quick — you mind if I just—"
+
+[npc.knowledge_map]
+appointment_system = "The queue cutter claims to have an appointment. Whether this is true is unknowable. They are moving toward the window regardless."
+sympathize = "The queue cutter sympathizes with your situation from a position of apparent exemption from it."
+commiserate = "The queue cutter does not commiserate. They are about to get seen."
+
+[npc.trust_thresholds]
+appointment_system = 0
+sympathize = 0
+commiserate = 0
+
+[npc.morale_deltas]
+appointment_system = -3
+sympathize = -2
+commiserate = -4
+
+[npc.is_present_at]
+locations = ["waiting_room", "queue_window"]
+hours = "random_appearance"
+
+
+[[npc]]
+id = "supervisor"
+archetype = "supervisor"
+is_permanent = true
+voice_description = "Never directly present. Known only through the clerk's occasional references, a nameplate-shaped void on a wall, and a door that is always closed. When the supervisor is discussed, other NPCs lower their voices slightly, though they would deny doing so."
+fallback_line = "The supervisor is not available."
+
+[npc.knowledge_map]
+supervisor_name = "The supervisor's name, once revealed by the E-7, is a name. It is a real name. It appears in no directory. Googling it returns results for a different person with the same name in a different state."
+transcendence_hint = "The supervisor was not always the supervisor. This is what the E-7 implies. He does not say more."
+deers_fix = "The supervisor has the authority to override certain DEERS errors manually. This authority is, in practice, never exercised. The supervisor is not available."
+sympathize = "The supervisor, as a concept, does not sympathize."
+
+[npc.trust_thresholds]
+supervisor_name = 0
+transcendence_hint = 0
+deers_fix = 0
+sympathize = 0
+
+[npc.morale_deltas]
+supervisor_name = 1
+transcendence_hint = -2
+deers_fix = 2
+sympathize = -1
+
+[npc.is_present_at]
+locations = []
+hours = "never"

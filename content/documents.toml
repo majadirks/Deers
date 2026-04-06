@@ -1,0 +1,176 @@
+[[document]]
+id = "passport"
+display_name = "U.S. Passport"
+description = "A navy blue booklet, slightly battered at the corners. The photo was taken during a period of your life you prefer not to discuss."
+fixes_fields = ["last_name", "dod_id"]
+can_be_photocopied = true
+fallback_examine_text = "Your passport. Name, photo, expiration date. The essentials. You've had it for nine years, which means the photo is a historical document at this point."
+
+[[document.possible_flaws]]
+id = "expired"
+description = "The expiration date passed fourteen months ago. No one noticed until now."
+
+[[document.possible_flaws]]
+id = "maiden_name"
+description = "The name on the passport is a previous legal name. Technically correct. Technically a problem."
+
+
+[[document]]
+id = "drivers_license"
+display_name = "Driver's License"
+description = "State-issued photo ID. The lamination is peeling at one corner in a way that suggests either great age or great humidity."
+fixes_fields = ["last_name"]
+can_be_photocopied = true
+fallback_examine_text = "Your driver's license. The photo makes you look vaguely suspicious, which is the standard outcome for DMV photography."
+
+[[document.possible_flaws]]
+id = "laminated"
+description = "Someone, at some point, laminated this. The clerk will not accept laminated documents. This is a rule that exists."
+
+[[document.possible_flaws]]
+id = "expired"
+description = "Expired eight months ago. You kept meaning to renew it."
+
+[[document.possible_flaws]]
+id = "wrong_address"
+description = "The address is from two moves ago. Still technically your name, but questions will be asked."
+
+
+[[document]]
+id = "birth_certificate"
+display_name = "Birth Certificate"
+description = "A certified copy, obtained at considerable bureaucratic expense from a county records office that was only open on Tuesdays."
+fixes_fields = ["last_name", "ssn_last4"]
+can_be_photocopied = false
+fallback_examine_text = "Your birth certificate. Proof that you were, at some point, born. The county seal is slightly smudged but present."
+
+[[document.possible_flaws]]
+id = "laminated"
+description = "Laminated. A well-meaning relative did this in 1987. It seemed like a good idea. It was not."
+
+[[document.possible_flaws]]
+id = "maiden_name"
+description = "Lists a birth name that differs from your current legal name. A court order exists to explain this. You did not bring the court order."
+
+[[document.possible_flaws]]
+id = "unofficial_copy"
+description = "This is a photocopy of the original. The original is at your mother's house. In a different state."
+
+
+[[document]]
+id = "sf86_extract"
+display_name = "SF-86 Extract (Partial)"
+description = "Several pages from your security clearance application, printed in a 6-point font that suggests the form was designed by someone who has never used their eyes."
+fixes_fields = ["clearance_level", "ssn_last4", "rank_grade"]
+can_be_photocopied = true
+fallback_examine_text = "A partial printout of your SF-86. It contains more personal information than you are entirely comfortable with in a waiting room."
+
+[[document.possible_flaws]]
+id = "missing_page_2"
+description = "Page two is missing. Page two, it turns out, is where your clearance level is listed."
+
+[[document.possible_flaws]]
+id = "unofficial_copy"
+description = "This is not an official extract. It is a screenshot of the form. Printed. The clerk will have thoughts about this."
+
+
+[[document]]
+id = "appointment_email"
+display_name = "Appointment Confirmation Email"
+description = "A printout of an email confirming your in-processing appointment. The email references three attachments. You have none of them."
+fixes_fields = ["uic", "component", "rank_grade"]
+can_be_photocopied = true
+fallback_examine_text = "The confirmation email. It exists. It has your name on it, mostly. The date matches today, which is either reassuring or coincidental."
+
+[[document.possible_flaws]]
+id = "wrong_address"
+description = "The email lists Building 412. DEERS is in Building 412A. These are different buildings. One of them no longer exists."
+
+[[document.possible_flaws]]
+id = "unofficial_copy"
+description = "You printed this yourself. The clerk is aware of this. All parties are aware that you printed this yourself."
+
+
+[[document]]
+id = "security_officer_letter"
+display_name = "FSO Authorization Letter"
+description = "A letter on official letterhead from your Facility Security Officer, attesting to your clearance level in language so hedged it might constitute its own security risk."
+fixes_fields = ["clearance_level"]
+can_be_photocopied = false
+fallback_examine_text = "The FSO letter. It says, in essence, that you are who you say you are, with the caveat that this representation is made in good faith and subject to change."
+
+[[document.possible_flaws]]
+id = "illegible_notary"
+description = "The notary stamp is smudged. Not illegible, exactly. But illegible enough that the clerk can, and will, make a case for illegibility."
+
+[[document.possible_flaws]]
+id = "expired"
+description = "The letter is dated fourteen months ago. FSO letters are only valid for ninety days. You are learning this now."
+
+
+[[document]]
+id = "vehicle_pass_request"
+display_name = "Vehicle Pass Request Form"
+description = "A DD Form 2220, partially filled out. You brought this by mistake. It has nothing to do with your CAC. You brought it anyway."
+fixes_fields = []
+can_be_photocopied = true
+fallback_examine_text = "A vehicle pass request. This is not relevant to your current situation. It is, however, a form, and it is filled out, which is more than can be said for several of your other documents."
+
+[[document.possible_flaws]]
+id = "wrong_address"
+description = "The vehicle information section lists a car you sold in 2019."
+
+
+[[document]]
+id = "contractor_letter"
+display_name = "Contractor Appointment Letter"
+description = "A letter from the contracting company confirming your position, pay grade, and start date. It was issued by someone named K. Hendricks, who is no longer with the company."
+fixes_fields = ["component", "uic", "rank_grade", "ssn_last4"]
+can_be_photocopied = true
+fallback_examine_text = "The contractor appointment letter. The most important document you have, and also the one with the most formatting errors. The content is correct. The margins are not."
+
+[[document.possible_flaws]]
+id = "maiden_name"
+description = "The letter uses your name as it appears in the company HR system, which reflects your name as of your hiring date, which predates a legal name change."
+
+[[document.possible_flaws]]
+id = "unofficial_copy"
+description = "The signature is a digital signature on a printout. Whether this counts is a matter of ongoing institutional debate."
+
+[[document.possible_flaws]]
+id = "missing_page_2"
+description = "Page two contains your pay grade and contract end date. Page two was not printed. Page two is the important page."
+
+
+[[document]]
+id = "two_forms_id_combo"
+display_name = "Two Forms of ID (Combined)"
+description = "An envelope containing both your passport and your driver's license, because someone told you to bring two forms of ID and you took that seriously."
+fixes_fields = ["last_name"]
+can_be_photocopied = true
+fallback_examine_text = "The envelope. Two IDs. You did the thing they asked. Whether the things in the envelope are individually acceptable is a separate and ongoing question."
+
+[[document.possible_flaws]]
+id = "expired"
+description = "One of the two IDs is expired. Which one varies by loop. Both being valid simultaneously has not yet occurred."
+
+[[document.possible_flaws]]
+id = "laminated"
+description = "One of the IDs has been laminated. The envelope has done nothing to help this situation."
+
+
+[[document]]
+id = "previous_cac"
+display_name = "Previous CAC (Expired)"
+description = "Your old Common Access Card, expired fourteen months ago. You kept it. Out of sentiment, mostly. Also paranoia."
+fixes_fields = ["dod_id", "last_name"]
+can_be_photocopied = false
+fallback_examine_text = "Your old CAC. Expired. It contains your DoD ID number, which is either helpful or ironic depending on how the next few minutes go."
+
+[[document.possible_flaws]]
+id = "expired"
+description = "It is, by definition, expired. That is why you are here. The clerk will note this. You will nod."
+
+[[document.possible_flaws]]
+id = "illegible_notary"
+description = "The chip is damaged. The magnetic stripe works. Whether the magnetic stripe counts as sufficient is a question the clerk is currently researching."

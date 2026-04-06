@@ -1,0 +1,63 @@
+[[field]]
+name = "last_name"
+display_name = "Last Name"
+fix_method = "ON_SITE"
+fixing_documents = ["passport", "drivers_license", "birth_certificate"]
+blocking = true
+flavor_text = "It says your name is {current_value}. Is that... right? Because that's not what it says on your— never mind. Is that right."
+
+[[field]]
+name = "ssn_last4"
+display_name = "SSN (Last 4)"
+fix_method = "HR"
+fixing_documents = ["sf86_extract", "contractor_letter"]
+blocking = true
+flavor_text = "The last four on file are {current_value}. Your HR office would need to correct that. We can't touch Social Security numbers here. Policy."
+
+[[field]]
+name = "dod_id"
+display_name = "DoD ID Number"
+fix_method = "IMPOSSIBLE"
+fixing_documents = []
+blocking = true
+flavor_text = "The DoD ID is {current_value}. That's... that's a DEERS database field. It comes from DMDC. We can submit a ticket. The ticket takes six to eight weeks. Your start date is Monday. I understand."
+
+[[field]]
+name = "clearance_level"
+display_name = "Clearance Level"
+fix_method = "FSO"
+fixing_documents = ["security_officer_letter", "sf86_extract"]
+blocking = true
+flavor_text = "It shows {current_value} but your paperwork says something else. Your FSO would need to update that in JPAS. Do you have your FSO's contact information? No, I can't look it up for you."
+
+[[field]]
+name = "component"
+display_name = "Service Component"
+fix_method = "HR"
+fixing_documents = ["contractor_letter", "appointment_email"]
+blocking = false
+flavor_text = "Component shows {current_value}. That's unusual for a contractor. It won't block issuance but it will cause problems at the gate. HR can fix it. Eventually."
+
+[[field]]
+name = "uic"
+display_name = "Unit Identification Code"
+fix_method = "ON_SITE"
+fixing_documents = ["appointment_email", "contractor_letter"]
+blocking = false
+flavor_text = "The UIC is {current_value}. That's the old building. They moved. You'll need documentation showing the new UIC. Do you have your appointment email? The one from the contracting officer?"
+
+[[field]]
+name = "rank_grade"
+display_name = "Rank / Pay Grade"
+fix_method = "HR"
+fixing_documents = ["contractor_letter", "appointment_email", "sf86_extract"]
+blocking = false
+flavor_text = "It has you listed as {current_value}. For a contractor that should be a civilian pay grade. HR can update it. It won't stop us from issuing today but your access permissions will be wrong."
+
+[[field]]
+name = "contract_end"
+display_name = "Contract End Date"
+fix_method = "CONGRESSIONAL"
+fixing_documents = []
+blocking = false
+flavor_text = "Contract end date shows {current_value}. That's before Monday. Technically your contract hasn't been extended in the system yet. We can still issue — it's a known lag — but if anyone asks, this conversation didn't happen."
