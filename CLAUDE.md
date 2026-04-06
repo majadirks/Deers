@@ -1,10 +1,10 @@
 # DEERS IN THE HEADLIGHTS — LLM Working Context
 
-## Current Phase: Phase 4 (Persistence)
-## Last Completed Phase: Phase 3 (Game Logic — Deterministic Core)
-## Passing Tests: 193 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration)
+## Current Phase: Phase 5 (Claude — Input Parser)
+## Last Completed Phase: Phase 4 (Persistence)
+## Passing Tests: 209 passing (14 content, 61 model, 45 action, 24 condition, 32 state, 17 integration, 16 persistence)
 ## Known Issues: None
-## Next Action: Write deers/persistence.py, wire auto-save into engine, wire load into main.py
+## Next Action: Write deers/claude_client.py, deers/parser.py, wire into engine
 
 ## Key Design Decisions (do not relitigate)
 - Event log is append-only; game state is projected from it

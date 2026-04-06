@@ -5,6 +5,7 @@ from __future__ import annotations
 from deers.actions import ActionResolver, ResolutionFailure
 from deers.conditions import ConditionScheduler
 from deers.models import ParsedAction, TerminalCondition
+from deers.persistence import save_game
 from deers.state import GameState
 
 
@@ -87,6 +88,7 @@ class GameEngine:
 
     def _handle_loop_reset(self) -> str:
         self.state.trigger_reset()
+        save_game(self.state)
         parts = [
             "The office closes at 4:00 PM. The clerk does not say goodbye.\n"
             "You drive home. You will try again tomorrow.",
