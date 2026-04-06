@@ -478,6 +478,30 @@ class TestPhase9Polish:
         assert "doesn't" not in result
         assert len(result) > 0
 
+    def test_is_game_over_false_at_start(self, content):
+        """engine.is_game_over is False before any terminal condition fires."""
+        eng = make_engine(content)
+        assert not eng.is_game_over
+
+    def test_is_game_over_true_after_win(self, content):
+        """engine.is_game_over is True after a win condition fires."""
+        eng = make_engine(content)
+        s = eng.state
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+        eng.handle_input("wait")  # triggers evaluate_all post-action → standard win
+        assert eng.is_game_over
+
+    def test_is_game_over_true_after_lose(self, content):
+        """engine.is_game_over is True after a lose condition fires."""
+        eng = make_engine(content)
+        s = eng.state
+        s.morale.apply_delta(-1000)
+        eng.handle_input("wait")
+        assert eng.is_game_over
+
     def test_readme_exists(self):
         """README.md exists at project root."""
         from pathlib import Path

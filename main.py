@@ -65,6 +65,9 @@ def main() -> None:
             print(output)
             print()
 
+        if engine.is_game_over:
+            break
+
 
 if __name__ == "__main__":
     main()

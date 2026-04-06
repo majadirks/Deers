@@ -47,6 +47,7 @@ class GameEngine:
         self.resolver = ActionResolver()
         self.scheduler = ConditionScheduler(self.state.content)
         self.api_key = api_key
+        self._game_over: bool = False
 
         # Phase 5-7: Claude components (None if no api_key or anthropic not installed)
         self.parser: InputParser | None = None
@@ -155,7 +156,12 @@ class GameEngine:
         ]
         return "\n\n".join(parts)
 
+    @property
+    def is_game_over(self) -> bool:
+        return self._game_over
+
     def _handle_terminal(self, condition: TerminalCondition) -> str:
+        self._game_over = True
         return condition.message
 
     # ------------------------------------------------------------------
