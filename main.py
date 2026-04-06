@@ -1,13 +1,26 @@
 """DEERS IN THE HEADLIGHTS — main entry point."""
 
-import os
+import json
+from pathlib import Path
 
 from deers.engine import GameEngine
 from deers.persistence import load_game, save_game, save_exists
 
 
+def _load_api_key() -> str | None:
+    """Read anthropic_api_key from secrets.json, if present."""
+    path = Path("secrets.json")
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("anthropic_api_key") or None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = _load_api_key()
 
     print("DEERS IN THE HEADLIGHTS")
     print("─" * 40)
