@@ -13,7 +13,10 @@ if TYPE_CHECKING:
     from deers.state import GameState
 
 _VALID_VERBS = frozenset(
-    {"GO", "TALK", "EXAMINE", "TAKE", "USE", "WAIT", "DROP", "READ", "HELP", "STATUS", "QUIT"}
+    {
+        "GO", "TALK", "EXAMINE", "TAKE", "USE", "WAIT", "DROP", "READ",
+        "HELP", "STATUS", "QUIT", "SUBMIT", "GIVE", "HAND",
+    }
 )
 
 # Threshold below which we emit the clarification as a hint message

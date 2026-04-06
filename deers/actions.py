@@ -159,12 +159,15 @@ class ActionResolver:
             "READ": self._handle_read,
             "HELP": self._handle_help,
             "STATUS": self._handle_status,
+            "SUBMIT": self._handle_submit,
+            "GIVE": self._handle_submit,    # alias
+            "HAND": self._handle_submit,    # alias
         }
         handler = handlers.get(verb)
         if handler is None:
             return ResolutionFailure(
                 f"The word '{parsed.verb}' doesn't mean anything here. "
-                "Try: GO, TALK, EXAMINE, TAKE, USE, WAIT, DROP, READ, HELP, STATUS."
+                "Try: GO, TALK, EXAMINE, TAKE, USE, SUBMIT, WAIT, DROP, READ, HELP, STATUS."
             )
 
         action = handler(parsed, state)
@@ -284,6 +287,10 @@ class ActionResolver:
         target = parsed.target.lower().strip()
         loc = state.current_location()
 
+        # Examine DEERS record
+        if target in ("deers", "record", "my record", "my deers", "deers record", "deers_record"):
+            return self._handle_examine_deers(state)
+
         # Examine current location
         if not target or target in ("location", "room", "area", "around", "here", "everything"):
             return Action(
@@ -394,6 +401,16 @@ class ActionResolver:
                 ParsedAction(verb="TAKE", target=target), state
             )
 
+        # Vending machine aliases: chips, snacks, coffee → working_vending_machine
+        if any(kw in target for kw in ("chip", "snack", "crisp", "coffee")):
+            vending = next(
+                (f for f in loc.features if f.id == "working_vending_machine"), None
+            )
+            if vending:
+                event_type = vending.interactions.get("USE")
+                if event_type:
+                    return self._dispatch_feature_use(vending, event_type, state, target)
+
         # Find a feature with USE interaction
         feature = next(
             (
@@ -413,14 +430,32 @@ class ActionResolver:
                 f"You can't use the {feature.name} that way."
             )
 
-        return self._dispatch_feature_use(feature, event_type, state)
+        return self._dispatch_feature_use(feature, event_type, state, target)
 
     def _dispatch_feature_use(
-        self, feature, event_type: str, state: "GameState"
+        self, feature, event_type: str, state: "GameState", raw_target: str = ""
     ) -> Action | ResolutionFailure:
         """Dispatch a USE interaction to its specific logic."""
 
         if event_type == "player_uses_vending":
+            # Chips if player asked for chips/snacks; otherwise coffee.
+            if any(kw in raw_target for kw in ("chip", "snack", "crisp")):
+                def buy_chips(s: "GameState") -> GameEvent:
+                    s.morale.apply("chips_consumed")
+                    return GameEvent(event_type="chips_consumed", payload={"item": "chips"})
+
+                return Action(
+                    verb="USE",
+                    target=feature.id,
+                    conditions=[],
+                    effects=[buy_chips],
+                    message=(
+                        "You buy a bag of chips. The machine dispenses them with the "
+                        "reluctant energy of something that has done this ten thousand times. "
+                        "They are salt-and-vinegar. You eat them over the trash can."
+                    ),
+                )
+
             def buy_coffee(s: "GameState") -> GameEvent:
                 s.morale.apply("coffee_consumed")
                 return GameEvent(event_type="coffee_consumed", payload={"item": "coffee"})
@@ -435,6 +470,44 @@ class ActionResolver:
                     "The coffee is approximately the temperature of a decision you "
                     "cannot take back. You drink it standing up."
                 ),
+            )
+
+        if event_type == "player_uses_payphone":
+            if "WORKAROUND_KNOWN" not in state.permanent_knowledge:
+                return Action(
+                    verb="USE",
+                    target=feature.id,
+                    conditions=[],
+                    effects=[],
+                    message=(
+                        "You pick up the receiver. There is a dial tone. "
+                        "You're not sure what number to call. "
+                        "Someone in this building probably knows."
+                    ),
+                )
+
+            def call_deers_helpdesk(s: "GameState") -> GameEvent:
+                s.workaround_called = True
+                s.clock.advance(15)
+                return GameEvent(event_type="workaround_called", is_permanent=True)
+
+            return Action(
+                verb="USE",
+                target=feature.id,
+                conditions=[],
+                effects=[call_deers_helpdesk],
+                message=(
+                    "You dial the number the E-7 gave you. The hold music is a MIDI "
+                    "rendition of something that was once a song. After eleven minutes, "
+                    "someone answers."
+                ),
+            )
+
+        if event_type == "player_submits_via_tray":
+            # Document tray at queue_window — delegate to submit logic
+            return self._handle_submit(
+                type("ParsedAction", (), {"verb": "SUBMIT", "target": "documents"})(),
+                state,
             )
 
         if event_type == "player_drinks_water":
@@ -501,7 +574,10 @@ class ActionResolver:
             s.clock.advance(30)
             s.morale.apply("wait")
             if s.queue_position is not None and s.queue_position > 0:
+                old_pos = s.queue_position
                 s.queue_position = max(0, s.queue_position - random.randint(1, 2))
+                if s.queue_position < old_pos:
+                    s.morale.apply("queue_advanced")
             return GameEvent(event_type="wait", payload={"minutes": 30})
 
         return Action(
@@ -586,21 +662,22 @@ class ActionResolver:
         help_text = (
             "DEERS IN THE HEADLIGHTS — Available Commands\n"
             "─────────────────────────────────────────────\n"
-            "  GO [place]      Move to a location\n"
-            "  TALK [person]   Start a conversation\n"
-            "  EXAMINE [thing] Look at something closely\n"
-            "  TAKE [thing]    Pick something up\n"
-            "  USE [thing]     Interact with something\n"
-            "  WAIT            Pass 30 minutes (advances queue)\n"
-            "  DROP [item]     Put something down\n"
-            "  READ [doc]      Read a document in detail\n"
-            "  STATUS          Check your current status\n"
-            "  HELP            Show this message\n"
+            "  GO [place]       Move to a location\n"
+            "  TALK [person]    Start a conversation\n"
+            "  EXAMINE [thing]  Look at something (try: EXAMINE DEERS)\n"
+            "  TAKE [thing]     Pick something up\n"
+            "  USE [thing]      Interact with something\n"
+            "  SUBMIT           Submit documents to the clerk at the window\n"
+            "  WAIT             Pass 30 minutes (advances queue)\n"
+            "  DROP [item]      Put something down\n"
+            "  READ [doc]       Read a document in detail\n"
+            "  STATUS           Check your current status\n"
+            "  HELP             Show this message\n"
             "\n"
             "You can type naturally — 'go to the waiting room', 'talk to the old guy'.\n"
             "The system will do its best.\n"
             "\n"
-            "Objective: get your Common Access Card issued before Monday."
+            "Objective: get your Common Access Card issued before Friday."
         )
         return Action(
             verb="HELP",
@@ -637,6 +714,126 @@ class ActionResolver:
             conditions=[],
             effects=[],
             message=lambda s: build_status(s),
+        )
+
+    def _handle_submit(
+        self, parsed: ParsedAction, state: "GameState"
+    ) -> Action | ResolutionFailure:
+        """Submit documents to the clerk to fix ON_SITE DEERS fields."""
+        if state.current_location_id != "queue_window":
+            return ResolutionFailure(
+                "There's no one to submit documents to here. "
+                "Go to the processing window."
+            )
+        if state.queue_position is None:
+            return ResolutionFailure(
+                "You don't have a queue number. "
+                "Take a number from the dispenser in the waiting room first."
+            )
+
+        # Use a closure list so effects can write and message can read.
+        result_lines: list[str] = []
+
+        def submit_documents(s: "GameState") -> GameEvent:
+            any_fixed = False
+
+            for f in list(s.deers.corrupted_fields()):
+                matching = [
+                    d for d in s.inventory.documents
+                    if d.doc_type.value in f.fixing_documents
+                ]
+                if not matching:
+                    if f.blocking:
+                        result_lines.append(
+                            f"{f.display_name}: No applicable document in your possession."
+                        )
+                        s.morale.apply("deers_field_rejected")
+                    continue
+
+                fix_result = f.attempt_fix(matching[0])
+                result_lines.append(fix_result.message)
+                if fix_result.success:
+                    any_fixed = True
+                    s.morale.apply("deers_field_fixed")
+                    # Record field knowledge for corruption-probability mitigation
+                    s.permanent_knowledge.add(f"DEERS_FIELD_{f.name}")
+                    # TRANSCENDENCE_STEP_2: fixing any field "by accident"
+                    s.permanent_knowledge.add("TRANSCENDENCE_STEP_2")
+                else:
+                    s.morale.apply("deers_field_rejected")
+
+            # Discover IMPOSSIBLE combination if present
+            if s.deers.has_impossible_combination():
+                if "IMPOSSIBLE_SEEN" not in s.permanent_knowledge:
+                    s.permanent_knowledge.add("IMPOSSIBLE_SEEN")
+                    s.permanent_knowledge.add("DEERS_FIELD_dod_id")
+                    s.permanent_knowledge.add("DEERS_FIELD_clearance_level")
+                    result_lines.append(
+                        "The terminal pauses. The clerk looks at the screen. "
+                        "The clerk looks at you. They say: 'This shouldn't be possible.'"
+                    )
+
+            # Unlock transcendence when all steps are present
+            if all(
+                k in s.permanent_knowledge
+                for k in ("IMPOSSIBLE_SEEN", "TRANSCENDENCE_STEP_1", "TRANSCENDENCE_STEP_2")
+            ):
+                s.permanent_knowledge.add("TRANSCENDENCE_UNLOCKED")
+
+            return GameEvent(
+                event_type="documents_submitted",
+                payload={"any_fixed": any_fixed},
+            )
+
+        def build_message(s: "GameState") -> str:
+            prefix = (
+                "You slide your documents under the plexiglass. "
+                "The clerk examines each one in silence."
+            )
+            if not result_lines:
+                return prefix + "\n\nAll fields are in order."
+            return prefix + "\n\n" + "\n".join(f"• {r}" for r in result_lines)
+
+        return Action(
+            verb="SUBMIT",
+            target="documents",
+            conditions=[],
+            effects=[submit_documents],
+            message=build_message,
+        )
+
+    def _handle_examine_deers(self, state: "GameState") -> Action:
+        """Examine the player's DEERS record."""
+
+        def discover_impossible(s: "GameState") -> GameEvent | None:
+            if (
+                s.deers.has_impossible_combination()
+                and "IMPOSSIBLE_SEEN" not in s.permanent_knowledge
+            ):
+                s.permanent_knowledge.add("IMPOSSIBLE_SEEN")
+                s.permanent_knowledge.add("DEERS_FIELD_dod_id")
+                s.permanent_knowledge.add("DEERS_FIELD_clearance_level")
+            return GameEvent(event_type="examine_deers")
+
+        def build_deers_text(s: "GameState") -> str:
+            lines = ["Your DEERS Record:"]
+            lines.append("─" * 36)
+            for f in s.deers.fields.values():
+                if f.is_corrupted:
+                    block = " [BLOCKING]" if f.blocking else ""
+                    fix = f"  Fix: {f.fix_method.value}"
+                    lines.append(f"  {f.display_name}: CORRUPTED ({f.current_value}){block}")
+                    lines.append(fix)
+                else:
+                    lines.append(f"  {f.display_name}: OK")
+            return "\n".join(lines)
+
+        return Action(
+            verb="EXAMINE",
+            target="deers",
+            conditions=[],
+            effects=[discover_impossible],
+            message=build_deers_text,
         )
 
     # ------------------------------------------------------------------

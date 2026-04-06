@@ -13,6 +13,7 @@ def load_all() -> dict:
     return {
         "deers_fields": load_toml("deers_fields.toml"),
         "documents": load_toml("documents.toml"),
+        "endings": load_toml("endings.toml"),
         "locations": load_toml("locations.toml"),
         "npcs": load_toml("npcs.toml"),
         "prompts": load_toml("prompts.toml"),

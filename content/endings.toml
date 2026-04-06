@@ -1,0 +1,73 @@
+# Ending texts for all win and lose conditions.
+# Loaded via deers/content.py and used by ConditionScheduler.
+
+[win.standard]
+title = "CAC Issued"
+text = """The clerk scans your documents. The terminal makes a sound you have not heard before. The clerk slides a card under the plexiglass without comment.
+
+It is a CAC.
+
+Your name is on it. The photo is acceptable. The expiration date is fourteen months from today, which will also be a problem, but not today's problem.
+
+The clerk is already looking at the next number.
+
+VICTORY: CAC Issued.
+(Note: temporary access credentials expire in 90 days. Please see HR to resolve outstanding DEERS discrepancies.)"""
+
+[win.workaround]
+title = "Workaround Complete"
+text = """The person who answers the DEERS help desk has a voice that suggests they have answered this call before. They ask for the case number format the E-7 described. You provide it. There is a pause. A longer pause. They tell you to go to the processing window.
+
+What happens at the processing window is not discussed here. What you receive is not, technically, a CAC. It is a document that functions as a CAC for purposes that have not been fully enumerated. You do not ask questions.
+
+VICTORY: Workaround Complete.
+(Whether this will work next time is genuinely unclear.)"""
+
+[win.transcendence]
+title = "Transcendence"
+text = """You are sitting at the window.
+
+You are on the other side of the window.
+
+You have been here before. You will be here again. The form in front of you is familiar in the way that recurring dreams are familiar — not the content, but the texture of it, the specific quality of the light.
+
+Someone approaches. They have an appointment email. It is printed on paper that has been folded exactly once. Their name, as it appears in DEERS, is wrong.
+
+You know this before they say a word.
+
+VICTORY: Transcendence.
+
+─────────────────────────────────────────────
+DEERS IN THE HEADLIGHTS
+Thank you for playing.
+─────────────────────────────────────────────"""
+
+[lose.morale_collapse]
+title = "Morale Collapse"
+text = """You are standing in the parking lot. You have been standing here for some time. The thought of going back inside has become structurally incompatible with continuing. You get in your car.
+
+GAME OVER: Morale collapse.
+(You needed coffee. There was a vending machine.)"""
+
+[lose.start_date_missed]
+title = "Start Date Missed"
+text = """It is Friday. Your start date is today. You do not have a CAC.
+
+You have sent three emails explaining the situation. Two bounced. One received an out-of-office reply dated eleven months ago.
+
+GAME OVER: Start date missed.
+(Four days was, in retrospect, not enough time.)"""
+
+[lose.tailgating]
+title = "Tailgating"
+text = """An MP stops you inside the building. You do not have valid photo identification on your person. The MP is not interested in your appointment email. You are escorted out.
+
+GAME OVER: Tailgating.
+(You needed a valid passport or driver's license to enter.)"""
+
+[lose.corrected_clerk]
+title = "Corrected the Clerk"
+text = """The clerk looks at you for a long moment. They pick up a phone. They speak briefly into it. They hang up. They tell you that processing has been suspended pending a review. They do not say of what. You are asked to leave.
+
+GAME OVER: Corrected the clerk.
+(The clerk is always right. Even when they are wrong, they are right.)"""

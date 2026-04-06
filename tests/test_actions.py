@@ -299,6 +299,7 @@ class TestHelpAndStatus:
         execution = action.execute(state)
         assert "GO" in execution.message
         assert "TALK" in execution.message
+        assert "SUBMIT" in execution.message
 
     def test_status_shows_loop(self, resolver, state):
         action = resolve_ok(resolver, "STATUS", "", state)
@@ -307,3 +308,176 @@ class TestHelpAndStatus:
 
     def test_unknown_verb_fails(self, resolver, state):
         resolve_fail(resolver, "FROBNICATE", "everything", state)
+
+
+class TestSubmitVerb:
+    def _setup_at_window(self, state):
+        state.current_location_id = "queue_window"
+        state.queue_position = 0
+
+    def test_submit_fails_outside_queue_window(self, resolver, state):
+        # Default: parking_lot
+        resolve_fail(resolver, "SUBMIT", "documents", state)
+
+    def test_submit_fails_without_queue_number(self, resolver, state):
+        state.current_location_id = "queue_window"
+        state.queue_position = None
+        resolve_fail(resolver, "SUBMIT", "documents", state)
+
+    def test_submit_resolves_at_window_with_number(self, resolver, state):
+        self._setup_at_window(state)
+        resolve_ok(resolver, "SUBMIT", "documents", state)
+
+    def test_submit_fixes_on_site_field_with_valid_doc(self, resolver, state):
+        self._setup_at_window(state)
+        # Force last_name corruption; passport is in inventory and valid
+        state.deers.fields["last_name"].is_corrupted = True
+        # Ensure passport is clean (starting inventory has clean passport)
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        action.execute(state)
+        assert not state.deers.fields["last_name"].is_corrupted
+
+    def test_submit_morale_increase_on_fix(self, resolver, state):
+        self._setup_at_window(state)
+        # Clear all other corruptions so only last_name affects morale
+        for f in state.deers.fields.values():
+            f.is_corrupted = False
+        state.deers.fields["last_name"].is_corrupted = True
+        state.morale.apply_delta(-30)  # ensure we're below max so +12 is visible
+        before = state.morale.current
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        action.execute(state)
+        assert state.morale.current > before
+
+    def test_submit_morale_drain_on_unfixable_blocking(self, resolver, state):
+        self._setup_at_window(state)
+        # ssn_last4 is HR; no HR document in starting inventory
+        state.deers.fields["last_name"].is_corrupted = False
+        for f in state.deers.fields.values():
+            f.is_corrupted = False
+        state.deers.fields["ssn_last4"].is_corrupted = True
+        before = state.morale.current
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        action.execute(state)
+        assert state.morale.current < before
+
+    def test_submit_awards_transcendence_step_2_on_fix(self, resolver, state):
+        self._setup_at_window(state)
+        state.deers.fields["last_name"].is_corrupted = True
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        action.execute(state)
+        assert "TRANSCENDENCE_STEP_2" in state.permanent_knowledge
+
+    def test_submit_detects_impossible_combination(self, resolver, state):
+        self._setup_at_window(state)
+        state.deers.fields["dod_id"].is_corrupted = True
+        state.deers.fields["clearance_level"].is_corrupted = True
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        action.execute(state)
+        assert "IMPOSSIBLE_SEEN" in state.permanent_knowledge
+
+    def test_submit_message_shows_results(self, resolver, state):
+        self._setup_at_window(state)
+        state.deers.fields["last_name"].is_corrupted = True
+        action = resolve_ok(resolver, "SUBMIT", "documents", state)
+        execution = action.execute(state)
+        assert "Last Name" in execution.message
+
+    def test_give_is_alias_for_submit(self, resolver, state):
+        self._setup_at_window(state)
+        resolve_ok(resolver, "GIVE", "documents", state)
+
+    def test_hand_is_alias_for_submit(self, resolver, state):
+        self._setup_at_window(state)
+        resolve_ok(resolver, "HAND", "documents", state)
+
+
+class TestExamineDeers:
+    def test_examine_deers_returns_field_list(self, resolver, state):
+        action = resolve_ok(resolver, "EXAMINE", "deers", state)
+        execution = action.execute(state)
+        assert "DEERS" in execution.message
+
+    def test_examine_record_alias(self, resolver, state):
+        action = resolve_ok(resolver, "EXAMINE", "record", state)
+        execution = action.execute(state)
+        assert "DEERS" in execution.message
+
+    def test_examine_deers_shows_corrupted_fields(self, resolver, state):
+        state.deers.fields["last_name"].is_corrupted = True
+        action = resolve_ok(resolver, "EXAMINE", "deers", state)
+        execution = action.execute(state)
+        assert "CORRUPTED" in execution.message
+
+    def test_examine_deers_awards_impossible_seen(self, resolver, state):
+        state.deers.fields["dod_id"].is_corrupted = True
+        state.deers.fields["clearance_level"].is_corrupted = True
+        action = resolve_ok(resolver, "EXAMINE", "deers", state)
+        action.execute(state)
+        assert "IMPOSSIBLE_SEEN" in state.permanent_knowledge
+
+    def test_examine_deers_no_impossible_seen_without_combination(self, resolver, state):
+        state.deers.fields["dod_id"].is_corrupted = False
+        state.deers.fields["clearance_level"].is_corrupted = False
+        action = resolve_ok(resolver, "EXAMINE", "deers", state)
+        action.execute(state)
+        assert "IMPOSSIBLE_SEEN" not in state.permanent_knowledge
+
+
+class TestPayphone:
+    def test_payphone_present_in_waiting_room(self, resolver, state):
+        state.current_location_id = "waiting_room"
+        action = resolve_ok(resolver, "USE", "payphone", state)
+        execution = action.execute(state)
+        assert len(execution.message) > 0
+
+    def test_payphone_without_workaround_known_gives_hint(self, resolver, state):
+        state.current_location_id = "waiting_room"
+        assert "WORKAROUND_KNOWN" not in state.permanent_knowledge
+        action = resolve_ok(resolver, "USE", "payphone", state)
+        execution = action.execute(state)
+        assert "not sure" in execution.message.lower() or "someone" in execution.message.lower()
+        assert not state.workaround_called
+
+    def test_payphone_with_workaround_known_sets_flag(self, resolver, state):
+        state.current_location_id = "waiting_room"
+        state.permanent_knowledge.add("WORKAROUND_KNOWN")
+        action = resolve_ok(resolver, "USE", "payphone", state)
+        action.execute(state)
+        assert state.workaround_called
+
+    def test_payphone_with_workaround_known_advances_clock(self, resolver, state):
+        from deers.clock import OFFICE_OPEN_MINS
+        state.current_location_id = "waiting_room"
+        state.permanent_knowledge.add("WORKAROUND_KNOWN")
+        action = resolve_ok(resolver, "USE", "payphone", state)
+        action.execute(state)
+        assert state.clock.current_minutes > OFFICE_OPEN_MINS
+
+
+class TestVendingChips:
+    def test_chips_restore_morale(self, resolver, state):
+        state.current_location_id = "vending_alcove"
+        state.morale.apply_delta(-30)
+        before = state.morale.current
+        action = resolve_ok(resolver, "USE", "chips", state)
+        action.execute(state)
+        assert state.morale.current > before
+
+    def test_vending_default_gives_coffee(self, resolver, state):
+        state.current_location_id = "vending_alcove"
+        action = resolve_ok(resolver, "USE", "vending machine", state)
+        execution = action.execute(state)
+        assert "coffee" in execution.message.lower()
+
+
+class TestQueueMoraleEvent:
+    def test_wait_awards_queue_advanced_morale(self, resolver, state):
+        state.queue_position = 5
+        before = state.morale.current
+        action = resolve_ok(resolver, "WAIT", "", state)
+        action.execute(state)
+        # wait drains -3, queue_advanced restores +4 → net +1 if queue advances
+        # Net could be -3 if queue didn't advance (unlikely but possible)
+        # Just verify queue decreased
+        assert state.queue_position < 5

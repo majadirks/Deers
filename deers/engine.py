@@ -23,7 +23,7 @@ class GameEngine:
     def __init__(self, player_name: str, api_key: str | None = None):
         self.state = GameState.new_game(player_name)
         self.resolver = ActionResolver()
-        self.scheduler = ConditionScheduler()
+        self.scheduler = ConditionScheduler(self.state.content)
         self.api_key = api_key
 
         # Phase 5-7: Claude components (None if no api_key or anthropic not installed)

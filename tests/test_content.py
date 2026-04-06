@@ -6,11 +6,11 @@ from deers.content import load_all, load_toml
 
 def test_load_all_runs():
     data = load_all()
-    assert set(data.keys()) == {"deers_fields", "documents", "locations", "npcs", "prompts"}
+    assert set(data.keys()) == {"deers_fields", "documents", "endings", "locations", "npcs", "prompts"}
 
 
 def test_all_toml_files_parse():
-    for filename in ["deers_fields.toml", "documents.toml", "locations.toml", "npcs.toml", "prompts.toml"]:
+    for filename in ["deers_fields.toml", "documents.toml", "endings.toml", "locations.toml", "npcs.toml", "prompts.toml"]:
         result = load_toml(filename)
         assert result is not None
 
@@ -95,3 +95,16 @@ def test_clearance_level_is_fso_fixable():
     data = load_all()
     clearance = next(f for f in data["deers_fields"]["field"] if f["name"] == "clearance_level")
     assert clearance["fix_method"] == "FSO"
+
+
+def test_endings_have_all_outcomes():
+    data = load_all()
+    endings = data["endings"]
+    assert "win" in endings
+    assert "lose" in endings
+    for key in ("standard", "workaround", "transcendence"):
+        assert key in endings["win"], f"Missing win ending: {key}"
+        assert "text" in endings["win"][key], f"Win ending {key} missing 'text'"
+    for key in ("morale_collapse", "start_date_missed", "tailgating", "corrected_clerk"):
+        assert key in endings["lose"], f"Missing lose ending: {key}"
+        assert "text" in endings["lose"][key], f"Lose ending {key} missing 'text'"

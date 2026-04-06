@@ -275,3 +275,121 @@ class TestEngineHandleInput:
         s.deers.fields["dod_id"].is_corrupted = True
         s.deers.fields["clearance_level"].is_corrupted = True
         assert s.deers.has_impossible_combination()
+
+
+class TestPhase8Mechanics:
+    """End-to-end tests for Phase 8 mechanics."""
+
+    def test_standard_win_via_submit(self, content):
+        """Player can win by submitting documents that fix all blocking fields."""
+        eng = make_engine(content)
+        s = eng.state
+
+        # Clear all corruption, set only last_name (ON_SITE, fixed by passport)
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+        s.deers.fields["last_name"].is_corrupted = True
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+
+        # Submit cleans last_name using passport
+        result = eng.handle_input("submit documents")
+        assert not s.deers.fields["last_name"].is_corrupted
+        # CAC should be issued (TerminalCondition fires)
+        assert "VICTORY" in result or "CAC" in result
+
+    def test_workaround_win_via_payphone(self, content):
+        """Player can win by using payphone with WORKAROUND_KNOWN."""
+        eng = make_engine(content)
+        s = eng.state
+        s.permanent_knowledge.add("WORKAROUND_KNOWN")
+        s.current_location_id = "waiting_room"
+
+        result = eng.handle_input("use payphone")
+        assert s.workaround_called
+        assert "VICTORY" in result
+
+    def test_workaround_win_without_knowledge_fails(self, content):
+        """Payphone without WORKAROUND_KNOWN does NOT trigger win."""
+        eng = make_engine(content)
+        s = eng.state
+        s.current_location_id = "waiting_room"
+        assert "WORKAROUND_KNOWN" not in s.permanent_knowledge
+
+        result = eng.handle_input("use payphone")
+        assert not s.workaround_called
+        assert "VICTORY" not in result
+
+    def test_transcendence_win_full_path(self, content):
+        """All three transcendence steps present → TRANSCENDENCE_UNLOCKED → win."""
+        eng = make_engine(content)
+        s = eng.state
+        scheduler = ConditionScheduler(content)
+
+        s.permanent_knowledge.add("IMPOSSIBLE_SEEN")
+        s.permanent_knowledge.add("TRANSCENDENCE_STEP_1")
+        s.permanent_knowledge.add("TRANSCENDENCE_STEP_2")
+        s.permanent_knowledge.add("TRANSCENDENCE_UNLOCKED")
+
+        result = scheduler.evaluate_all(s)
+        assert result is not None
+        assert result.kind == WinCondition.TRANSCENDENCE
+
+    def test_transcendence_step2_awarded_on_fix(self, content):
+        """Fixing a DEERS field via SUBMIT awards TRANSCENDENCE_STEP_2."""
+        eng = make_engine(content)
+        s = eng.state
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+        s.deers.fields["last_name"].is_corrupted = True
+
+        eng.handle_input("submit documents")
+        assert "TRANSCENDENCE_STEP_2" in s.permanent_knowledge
+
+    def test_transcendence_unlocked_when_all_steps_present(self, content):
+        """SUBMIT that fixes a field when IMPOSSIBLE_SEEN + STEP_1 present → TRANSCENDENCE_UNLOCKED."""
+        eng = make_engine(content)
+        s = eng.state
+        s.permanent_knowledge.add("IMPOSSIBLE_SEEN")
+        s.permanent_knowledge.add("TRANSCENDENCE_STEP_1")
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+        s.deers.fields["last_name"].is_corrupted = True
+
+        eng.handle_input("submit documents")
+        assert "TRANSCENDENCE_UNLOCKED" in s.permanent_knowledge
+
+    def test_examine_deers_command(self, content):
+        """EXAMINE DEERS shows record status."""
+        eng = make_engine(content)
+        result = eng.handle_input("examine deers")
+        assert "DEERS" in result
+
+    def test_endings_loaded_from_toml(self, content):
+        """ConditionScheduler with content loads ending text from endings.toml."""
+        from deers.conditions import ConditionScheduler as CS
+        scheduler = CS(content)
+        s = GameState.new_game("Test", content)
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+        for f in s.deers.fields.values():
+            f.is_corrupted = False
+
+        result = scheduler.evaluate_all(s)
+        assert result is not None
+        # The TOML text has "CAC" in it
+        assert "CAC" in result.message
+
+    def test_submit_in_engine_full_flow(self, content):
+        """Engine processes SUBMIT verb end-to-end without crashing."""
+        eng = make_engine(content)
+        s = eng.state
+        s.current_location_id = "queue_window"
+        s.queue_position = 0
+        result = eng.handle_input("submit")
+        assert isinstance(result, str)
+        assert len(result) > 0

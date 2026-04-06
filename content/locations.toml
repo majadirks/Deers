@@ -82,6 +82,12 @@ name = "Television"
 examine_text = "The closed captions are wrong. Not slightly wrong. Categorically wrong. The chyron currently reads something that bears no relationship to the visible footage. You watch it for longer than you intended."
 interactions = {}
 
+[[location.features]]
+id = "payphone"
+name = "Payphone"
+examine_text = "An institutional gray payphone mounted on the wall near the door. It works. A laminated card beside it lists emergency numbers and a partially-obscured 1-800 number for something called DMDC INQUIRY LINE. The sticker over part of it says: THIS LINE FOR OFFICIAL USE ONLY."
+interactions = {USE = "player_uses_payphone"}
+
 
 [[location]]
 id = "queue_window"
@@ -107,6 +113,12 @@ id = "sign_collection"
 name = "Signs on the Wall"
 examine_text = "Four signs. PLEASE HAVE ALL DOCUMENTS READY. NO FOOD OR DRINK. SMILE. And, partially obscured by the SMILE sign: THIS OFFICE CANNOT PROCESS REQUESTS INVOLVING DMDC DATABASE ERRORS. You stare at this last one for a while."
 interactions = {}
+
+[[location.features]]
+id = "document_tray"
+name = "Document Tray"
+examine_text = "A shallow metal tray at the base of the plexiglass window. This is how documents are submitted. You slide them in. The clerk picks them up. This is the process."
+interactions = {USE = "player_submits_via_tray"}
 
 
 [[location]]

@@ -15,7 +15,22 @@ class ConditionScheduler:
     Evaluates win and lose conditions against the current GameState.
     Called twice per turn: before and after action processing.
     Returns the first TerminalCondition found, or None.
+
+    Accepts optional content dict; if provided, ending texts are loaded from
+    content/endings.toml. Falls back to hardcoded strings when content is absent
+    (e.g. in unit tests that construct ConditionScheduler directly).
     """
+
+    def __init__(self, content: dict | None = None) -> None:
+        endings = (content or {}).get("endings", {})
+        self._win_endings: dict = endings.get("win", {})
+        self._lose_endings: dict = endings.get("lose", {})
+
+    def _win_text(self, key: str, fallback: str) -> str:
+        return self._win_endings.get(key, {}).get("text", fallback)
+
+    def _lose_text(self, key: str, fallback: str) -> str:
+        return self._lose_endings.get(key, {}).get("text", fallback)
 
     def evaluate_all(self, state: "GameState") -> TerminalCondition | None:
         """Check all conditions in priority order. Loses take priority over wins."""
@@ -57,12 +72,13 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=LoseCondition.MORALE_COLLAPSE,
-            message=(
+            message=self._lose_text(
+                "morale_collapse",
                 "You are standing in the parking lot. You have been standing here "
                 "for some time. The thought of going back inside has become "
                 "structurally incompatible with continuing. You get in your car.\n\n"
                 "GAME OVER: Morale collapse.\n"
-                "(You needed coffee. There was a vending machine.)"
+                "(You needed coffee. There was a vending machine.)",
             ),
         )
 
@@ -74,12 +90,13 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=LoseCondition.START_DATE_MISSED,
-            message=(
+            message=self._lose_text(
+                "start_date_missed",
                 "It is Friday. Your start date is today. You do not have a CAC.\n\n"
                 "You have sent three emails explaining the situation. Two bounced. "
                 "One received an out-of-office reply dated eleven months ago.\n\n"
                 "GAME OVER: Start date missed.\n"
-                "(Four days was, in retrospect, not enough time.)"
+                "(Four days was, in retrospect, not enough time.)",
             ),
         )
 
@@ -95,12 +112,13 @@ class ConditionScheduler:
         state.tailgating_detected = False  # reset so we can show the message once
         return TerminalCondition(
             kind=LoseCondition.TAILGATING,
-            message=(
+            message=self._lose_text(
+                "tailgating",
                 "An MP stops you inside the building. You do not have valid photo "
                 "identification on your person. The MP is not interested in your "
                 "appointment email. You are escorted out.\n\n"
                 "GAME OVER: Tailgating.\n"
-                "(You needed a valid passport or driver's license to enter.)"
+                "(You needed a valid passport or driver's license to enter.)",
             ),
         )
 
@@ -115,13 +133,14 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=LoseCondition.CORRECTED_CLERK,
-            message=(
+            message=self._lose_text(
+                "corrected_clerk",
                 "The clerk looks at you for a long moment. They pick up a phone. "
                 "They speak briefly into it. They hang up. They tell you that "
                 "processing has been suspended pending a review. They do not say "
                 "of what. You are asked to leave.\n\n"
                 "GAME OVER: Corrected the clerk.\n"
-                "(The clerk is always right. Even when they are wrong, they are right.)"
+                "(The clerk is always right. Even when they are wrong, they are right.)",
             ),
         )
 
@@ -144,7 +163,8 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=WinCondition.STANDARD,
-            message=(
+            message=self._win_text(
+                "standard",
                 "The clerk scans your documents. The terminal makes a sound "
                 "you have not heard before. The clerk slides a card under the "
                 "plexiglass without comment.\n\n"
@@ -155,7 +175,7 @@ class ConditionScheduler:
                 "The clerk is already looking at the next number.\n\n"
                 "VICTORY: CAC Issued.\n"
                 "(Note: temporary access credentials expire in 90 days. "
-                "Please see HR to resolve outstanding DEERS discrepancies.)"
+                "Please see HR to resolve outstanding DEERS discrepancies.)",
             ),
         )
 
@@ -172,7 +192,8 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=WinCondition.WORKAROUND,
-            message=(
+            message=self._win_text(
+                "workaround",
                 "The person who answers the DEERS help desk has a voice that "
                 "suggests they have answered this call before. They ask for "
                 "the case number format the E-7 described. You provide it. "
@@ -183,7 +204,7 @@ class ConditionScheduler:
                 "that functions as a CAC for purposes that have not been fully "
                 "enumerated. You do not ask questions.\n\n"
                 "VICTORY: Workaround Complete.\n"
-                "(Whether this will work next time is genuinely unclear.)"
+                "(Whether this will work next time is genuinely unclear.)",
             ),
         )
 
@@ -198,7 +219,8 @@ class ConditionScheduler:
             return None
         return TerminalCondition(
             kind=WinCondition.TRANSCENDENCE,
-            message=(
+            message=self._win_text(
+                "transcendence",
                 "You are sitting at the window.\n\n"
                 "You are on the other side of the window.\n\n"
                 "You have been here before. You will be here again. "
@@ -213,6 +235,6 @@ class ConditionScheduler:
                 "─────────────────────────────────────────────\n"
                 "DEERS IN THE HEADLIGHTS\n"
                 "Thank you for playing.\n"
-                "─────────────────────────────────────────────"
+                "─────────────────────────────────────────────",
             ),
         )
